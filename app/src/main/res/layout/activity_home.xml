@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#FFF8F0"
+    android:fitsSystemWindows="true"
+    tools:context=".HomeActivity">
+
+    <!-- Barra de búsqueda -->
+    <LinearLayout
+        android:id="@+id/searchBarContainer"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:paddingBottom="8dp"
+        android:layout_marginTop="16dp"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <EditText
+            android:id="@+id/searchEditText"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_weight="1"
+            android:background="@drawable/search_edittext_bg"
+            android:drawableStart="@drawable/outline_search_24"
+            android:drawablePadding="8dp"
+            android:hint="Buscar productos..."
+            android:importantForAutofill="no"
+            android:inputType="text"
+            android:imeOptions="actionSearch"
+            android:singleLine="true"
+            android:paddingStart="40dp"
+            android:paddingEnd="12dp"
+            android:textSize="14sp"
+            android:textColor="#212121"
+            android:textColorHint="#9E9E9E"/>
+
+        <ImageButton
+            android:id="@+id/favButton"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginStart="8dp"
+            android:padding="8dp"
+            android:src="@drawable/ic_favorite_border"
+            android:tint="#E53935"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Favoritos" />
+
+        <ImageButton
+            android:id="@+id/cartButton"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginStart="8dp"
+            android:padding="8dp"
+            android:src="@drawable/ic_shopping_cart"
+            android:tint="#212121"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Carrito" />
+    </LinearLayout>
+
+    <!-- Contenedor de Fragments -->
+    <FrameLayout
+        android:id="@+id/contentContainer"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        app:layout_constraintTop_toBottomOf="@id/searchBarContainer"
+        app:layout_constraintBottom_toTopOf="@id/bottomNav"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- Barra inferior -->
+    <LinearLayout
+        android:id="@+id/bottomNav"
+        android:layout_width="0dp"
+        android:layout_height="64dp"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:background="#FFF8F0"
+        android:weightSum="3"
+        android:elevation="8dp"
+        android:paddingBottom="6dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <!-- Inicio -->
+        <LinearLayout
+            android:id="@+id/navInicio"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:clickable="true"
+            android:focusable="true">
+
+            <ImageView
+                android:id="@+id/iconHome"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@drawable/ic_home"
+                android:tint="@color/bottom_nav_tint" />
+
+            <TextView
+                android:id="@+id/labelHome"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Inicio"
+                android:textColor="@color/bottom_nav_text"
+                android:textSize="12sp" />
+        </LinearLayout>
+
+        <!-- Categorías -->
+        <LinearLayout
+            android:id="@+id/navCategorias"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:clickable="true"
+            android:focusable="true">
+
+            <ImageView
+                android:id="@+id/iconCategorias"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@drawable/ic_grid"
+                android:tint="@color/bottom_nav_tint" />
+
+            <TextView
+                android:id="@+id/labelCategorias"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Categorías"
+                android:textColor="@color/bottom_nav_text"
+                android:textSize="12sp" />
+        </LinearLayout>
+
+        <!-- Cuenta -->
+        <LinearLayout
+            android:id="@+id/navCuenta"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:clickable="true"
+            android:focusable="true">
+
+            <ImageView
+                android:id="@+id/iconCuenta"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@drawable/ic_person"
+                android:tint="@color/bottom_nav_tint" />
+
+            <TextView
+                android:id="@+id/labelCuenta"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Cuenta"
+                android:textColor="@color/bottom_nav_text"
+                android:textSize="12sp" />
+        </LinearLayout>
+    </LinearLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

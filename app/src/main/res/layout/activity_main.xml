@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#F6EEDF"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:paddingTop="32dp"
+        android:paddingBottom="32dp">
+
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="24dp"
+            android:layout_marginEnd="24dp"
+            app:cardCornerRadius="40dp"
+            app:cardElevation="8dp"
+            app:cardBackgroundColor="#FFF8EE">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:paddingHorizontal="24dp"
+                android:paddingTop="40dp"
+                android:paddingBottom="40dp"
+                android:gravity="center_horizontal">
+
+                <TextView
+                    android:id="@+id/tvBienvenido"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="¡Bienvenido de nuevo!"
+                    android:textSize="26sp"
+                    android:textStyle="bold"
+                    android:textColor="#000000"
+                    android:layout_marginBottom="8dp" />
+
+                <TextView
+                    android:id="@+id/tvAppNameTitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="MarketTec"
+                    android:textSize="46sp"
+                    android:textStyle="bold"
+                    android:textColor="#000000"
+                    android:layout_marginBottom="32dp" />
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    app:boxBackgroundMode="filled"
+                    app:boxBackgroundColor="#F3EEE3"
+                    app:hintEnabled="false"
+                    app:startIconDrawable="@drawable/ic_person"
+                    app:startIconTint="#808080"
+                    app:boxStrokeWidth="0dp"
+                    app:boxStrokeWidthFocused="0dp"
+                    app:boxCornerRadiusTopStart="10dp"
+                    app:boxCornerRadiusTopEnd="10dp"
+                    app:boxCornerRadiusBottomStart="10dp"
+                    app:boxCornerRadiusBottomEnd="10dp">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/etNombre"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="Correo Institucional"
+                        android:textColor="#000000"
+                        android:textColorHint="#808080"
+                        android:paddingVertical="12dp" />
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    app:boxBackgroundMode="filled"
+                    app:boxBackgroundColor="#F3EEE3"
+                    app:hintEnabled="false"
+                    app:startIconDrawable="@drawable/ic_lock_black_24dp"
+                    app:startIconTint="#808080"
+                    app:endIconMode="password_toggle"
+                    app:boxStrokeWidth="0dp"
+                    app:boxStrokeWidthFocused="0dp"
+                    app:boxCornerRadiusTopStart="10dp"
+                    app:boxCornerRadiusTopEnd="10dp"
+                    app:boxCornerRadiusBottomStart="10dp"
+                    app:boxCornerRadiusBottomEnd="10dp">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/etContrasena"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="Contraseña"
+                        android:inputType="textPassword"
+                        android:textColor="#000000"
+                        android:textColorHint="#808080"
+                        android:paddingVertical="12dp" />
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <TextView
+                    android:id="@+id/tvOlvido"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="¿Olvidaste tu contraseña?"
+                    android:textColor="#1E90FF"
+                    android:textSize="14sp"
+                    android:layout_gravity="end"
+                    android:layout_marginTop="16dp"
+                    android:layout_marginEnd="4dp" />
+
+                <Button
+                    android:id="@+id/btnIniciarSesion"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Iniciar sesión →"
+                    android:textColor="#FFFFFF"
+                    android:textStyle="bold"
+                    android:layout_marginTop="24dp"
+                    android:backgroundTint="#1E90FF"
+                    android:paddingVertical="14dp"
+                    app:cornerRadius="10dp" />
+
+                <ImageView
+                    android:id="@+id/imgLogo"
+                    android:layout_width="160dp"
+                    android:layout_height="160dp"
+                    android:layout_marginTop="40dp"
+                    android:src="@drawable/ic_markettec_logo"
+                    android:contentDescription="Logo de MarketTec"
+                    android:scaleType="fitCenter" />
+
+                <LinearLayout
+                    android:id="@+id/layoutRegistro"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginTop="48dp"
+                    android:gravity="center">
+
+                    <TextView
+                        android:id="@+id/tvRegistroInfo"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="¿No tienes una cuenta? "
+                        android:textColor="#000000"
+                        android:textSize="14sp" />
+
+                    <TextView
+                        android:id="@+id/tvRegistro"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Regístrate"
+                        android:textColor="#000000"
+                        android:textStyle="bold"
+                        android:textSize="14sp" />
+                </LinearLayout>
+
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+    </LinearLayout>
+</ScrollView>
