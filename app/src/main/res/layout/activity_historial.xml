@@ -2,27 +2,27 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:orientation="vertical"
-    android:background="#FFF8F0"
+    android:background="#FFFFFF"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <!-- Toolbar con margen superior para bajarla un poco -->
+
     <com.google.android.material.appbar.MaterialToolbar
         android:id="@+id/toolbar"
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
-        android:background="#FFF8F0"
+        android:background="#FFFFFF"
         android:paddingTop="18dp"
-        app:title="Historial"
+        app:title="chats"
         app:titleCentered="true"
         app:titleTextColor="#000000" />
 
-    <!-- Contenido -->
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Aquí irá tu historial"
+        android:text="No hay Chats encontrados"
         android:textColor="#000000"
         android:padding="24dp"
-        android:textSize="16sp" />
+        android:textSize="16sp"
+        android:gravity="center" /> ```
 </LinearLayout>

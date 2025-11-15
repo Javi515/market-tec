@@ -68,7 +68,7 @@ class CuentaFragment : Fragment() {
             startActivity(Intent(requireContext(), MisComprasActivity::class.java))
         }
 
-        view.findViewById<View>(R.id.rowHistorial).setOnClickListener {
+        view.findViewById<View>(R.id.rowChats).setOnClickListener {
             startActivity(Intent(requireContext(), HistorialActivity::class.java))
         }
 

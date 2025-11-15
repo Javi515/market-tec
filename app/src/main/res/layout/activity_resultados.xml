@@ -1,16 +1,35 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:gravity="center"
-    android:background="#FFF8F0">
+    android:fitsSystemWindows="true"
+    android:background="@android:color/white"  tools:context=".ResultadosActivity">
 
     <TextView
         android:id="@+id/textResultados"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Resultados"
+        android:layout_margin="16dp"
         android:textSize="18sp"
-        android:textColor="#333"/>
+        android:textStyle="bold"
+        tools:text="Mostrando resultados para: Teclado" />
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rvResultados"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:visibility="gone"
+        tools:listitem="@layout/item_product" /> <TextView
+    android:id="@+id/textNoResultados"
+    android:layout_width="match_parent"
+    android:layout_height="0dp"
+    android:layout_weight="1"
+    android:gravity="center"
+    android:text="No se encontraron productos."
+    android:textSize="16sp"
+    android:visibility="gone" />
+
 </LinearLayout>

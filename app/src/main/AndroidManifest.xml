@@ -15,25 +15,6 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.MarketTecNM">
 
-        <!-- Home (host de fragments) -->
-        <activity
-            android:name=".HomeActivity"
-            android:exported="false"
-            android:launchMode="singleTask" />
-
-        <!-- Pantallas del apartado "Cuenta" -->
-        <activity android:name=".MisComprasActivity" android:exported="false" />
-        <activity android:name=".HistorialActivity"  android:exported="false" />
-        <activity android:name=".VenderActivity"     android:exported="false" />
-        <activity android:name=".PublicacionesActivity" android:exported="false" />
-        <activity android:name=".AccesibilidadActivity" android:exported="false" />
-
-        <!-- Registro -->
-        <activity
-            android:name=".RegistroActivity"
-            android:exported="false" />
-
-        <!-- Login (launcher principal) -->
         <activity
             android:name=".MainActivity"
             android:exported="true">
@@ -43,5 +24,55 @@
             </intent-filter>
         </activity>
 
+        <activity
+            android:name=".HomeActivity"
+            android:exported="true"
+            android:launchMode="singleTask" />
+
+        <activity
+            android:name=".ProductDetailActivity"
+            android:exported="false"
+            android:parentActivityName=".HomeActivity" />
+
+        <activity
+            android:name=".ResultadosActivity"
+            android:exported="false"
+            android:parentActivityName=".HomeActivity" />
+
+        <activity
+            android:name=".CartActivity"
+            android:exported="false"
+            android:parentActivityName=".HomeActivity" />
+
+        <activity
+            android:name=".MisComprasActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".HistorialActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".VenderActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".PublicacionesActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".AccesibilidadActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".ConexionBackend"
+            android:exported="false" />
+
+        <activity
+            android:name=".RegistroActivity"
+            android:exported="false" />
+        <activity
+            android:name=".OlvidasteContrasenaActivity"
+            android:exported="false" />
     </application>
 </manifest>
