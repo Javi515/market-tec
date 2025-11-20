@@ -72,7 +72,7 @@
                         android:id="@+id/etNombre"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:hint="Correo Institucional"
+                        android:hint="Nombre de usuario"
                         android:textColor="#000000"
                         android:textColorHint="#808080"
                         android:paddingVertical="12dp" />

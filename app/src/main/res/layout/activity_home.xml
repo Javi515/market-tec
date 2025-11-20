@@ -132,7 +132,7 @@
             android:layout_height="40dp"
             android:layout_marginStart="8dp"
             android:padding="8dp"
-            android:src="@drawable/ic_favorite_border"
+            android:src="@drawable/ic_favorite_selector"
             android:tint="#E53935"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="Favoritos" />

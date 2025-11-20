@@ -2,6 +2,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <!-- PERMISO DE INTERNET REQUERIDO -->
     <uses-permission android:name="android.permission.INTERNET" />
 
     <application
@@ -13,7 +14,9 @@
         android:networkSecurityConfig="@xml/network_security_config"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.MarketTecNM">
+        android:name=".network.MyApp"
+        android:theme="@style/Theme.MarketTecNM"
+        android:usesCleartextTraffic="true">
 
         <activity
             android:name=".MainActivity"
@@ -64,9 +67,7 @@
             android:name=".AccesibilidadActivity"
             android:exported="false" />
 
-        <activity
-            android:name=".ConexionBackend"
-            android:exported="false" />
+
 
         <activity
             android:name=".RegistroActivity"

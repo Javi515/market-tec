@@ -169,7 +169,7 @@ class HomeActivity : AppCompatActivity() {
 
         navCategorias.setOnClickListener {
             // NOTA: Asegúrate de que CategoriasFragment exista
-            showFragment(CategoriasFragment())
+            showFragment(CategoriesFragment())
             setActiveTab("categorias")
         }
 
@@ -180,12 +180,7 @@ class HomeActivity : AppCompatActivity() {
         }
     }
 
-    // Llamado desde HomeFragment cuando cambie un favorito
-    fun refreshFavorites() {
-        if (::favoritesFragment.isInitialized && favoritesFragment.isVisible) {
-            favoritesFragment.updateFavorites()
-        }
-    }
+
 
     // --- FUNCIÓN AÑADIDA PARA MOSTRAR DIÁLOGO ---
     // (Asegúrate de que R.layout.dialogo_vista_previa exista)

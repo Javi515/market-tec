@@ -2,75 +2,108 @@ package com.example.markettecnm
 
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import android.view.View
 import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.example.markettecnm.adapters.ProductAdapter // <-- Asegúrate de importar tu adapter
-import com.example.markettecnm.models.Product // <-- Asegúrate de importar tu modelo
+import com.example.markettecnm.adapters.ProductAdapter
+import com.example.markettecnm.network.ProductModel
+import com.example.markettecnm.network.RetrofitClient
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class ResultadosActivity : AppCompatActivity() {
+
+    private lateinit var textResultados: TextView
+    private lateinit var rvResultados: RecyclerView
+    private lateinit var textNoResultados: TextView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_resultados)
-        title = "Resultados"
 
-        // --- 1. Obtener Vistas ---
-        val textResultados: TextView = findViewById(R.id.textResultados)
-        val rvResultados: RecyclerView = findViewById(R.id.rvResultados)
-        val textNoResultados: TextView = findViewById(R.id.textNoResultados)
+        title = "Resultados de búsqueda"
 
-        // --- 2. Obtener el query de búsqueda ---
+        // Vistas
+        textResultados = findViewById(R.id.textResultados)
+        rvResultados = findViewById(R.id.rvResultados)
+        textNoResultados = findViewById(R.id.textNoResultados)
+
+        rvResultados.layoutManager = LinearLayoutManager(this)
+        rvResultados.isNestedScrollingEnabled = false
+
+        // Obtener el texto buscado
         val query = intent.getStringExtra("query") ?: ""
-        textResultados.text = "Mostrando resultados para: \"$query\""
-
-        // --- 3. Obtener la lista COMPLETA de productos ---
-        // (Por ahora, la definimos aquí. Idealmente vendría de una base de datos o un 'Repositorio')
-        val allProducts = listOf(
-            Product(1, "Papas Francesas", 59.99, 4.0f, 24, R.drawable.papas_fritas),
-            Product(2, "Teclado Mecánico", 85.00, 4.5f, 150, R.drawable.teclado),
-            Product(3, "Camiseta Vintage", 25.50, 4.8f, 78, R.drawable.camiseta),
-            Product(4, "Mouse Inalámbrico", 19.99, 4.2f, 95, R.drawable.mouse)
-            // Agrega aquí TODOS los productos que tengas
-        )
-
-        // --- 4. Filtrar la lista ---
-        val filteredProducts = allProducts.filter { product ->
-            // Busca si el nombre del producto contiene el texto buscado (ignorando mayúsculas/minúsculas)
-            product.name.contains(query, ignoreCase = true)
+        if (query.isBlank()) {
+            textResultados.text = "Búsqueda vacía"
+            showNoResults()
+            return
         }
 
-        // --- 5. Configurar el RecyclerView o mostrar mensaje de "No resultados" ---
-        if (filteredProducts.isEmpty()) {
-            // No se encontró nada
-            rvResultados.visibility = View.GONE
-            textNoResultados.visibility = View.VISIBLE
-        } else {
-            // Se encontraron productos, mostramos la lista
-            rvResultados.visibility = View.VISIBLE
-            textNoResultados.visibility = View.GONE
+        textResultados.text = "Buscando: \"$query\""
 
-            rvResultados.layoutManager = LinearLayoutManager(this)
+        // Cargar y filtrar productos
+        searchProducts(query.trim())
+    }
 
-            // Usamos el MISMO ProductAdapter que usas en HomeFragment
-            rvResultados.adapter = ProductAdapter(
-                products = filteredProducts,
-                onClick = { product ->
-                    // Abrir detalles del producto
-                    val intent = Intent(this, ProductDetailActivity::class.java).apply {
-                        putExtra("product", product)
+    private fun searchProducts(query: String) {
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val response = RetrofitClient.instance.getProducts()
+
+                withContext(Dispatchers.Main) {
+                    if (response.isSuccessful) {
+                        val allProducts = response.body() ?: emptyList()
+                        val filtered = allProducts.filter {
+                            it.name.contains(query, ignoreCase = true) ||
+                                    it.description.contains(query, ignoreCase = true) ||
+                                    it.categoryName.contains(query, ignoreCase = true)
+                        }
+
+                        if (filtered.isEmpty()) {
+                            textResultados.text = "No se encontraron resultados para \"$query\""
+                            showNoResults()
+                        } else {
+                            textResultados.text = "Resultados para \"$query\" (${filtered.size})"
+                            showResults(filtered)
+                        }
+                    } else {
+                        Toast.makeText(this@ResultadosActivity, "Error al cargar productos", Toast.LENGTH_SHORT).show()
+                        showNoResults()
                     }
-                    startActivity(intent)
-                },
-                context = this,
-                onFavoriteChanged = {
-                    // Esta activity no es HomeActivity, así que no podemos
-                    // llamar a 'refreshFavorites' directamente.
-                    // Por ahora lo dejamos vacío o podrías usar un Toast.
                 }
-            )
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    Log.e("SEARCH", "Error de red", e)
+                    Toast.makeText(this@ResultadosActivity, "Sin conexión", Toast.LENGTH_LONG).show()
+                    showNoResults()
+                }
+            }
         }
+    }
+
+    private fun showResults(products: List<ProductModel>) {
+        textNoResultados.visibility = View.GONE
+        rvResultados.visibility = View.VISIBLE
+
+        rvResultados.adapter = ProductAdapter(
+            products = products,
+            onItemClick = { product ->
+                val intent = Intent(this, ProductDetailActivity::class.java).apply {
+                    putExtra("PRODUCT_ID", product.id)
+                }
+                startActivity(intent)
+            }
+        )
+    }
+
+    private fun showNoResults() {
+        textNoResultados.visibility = View.VISIBLE
+        rvResultados.visibility = View.GONE
     }
 }

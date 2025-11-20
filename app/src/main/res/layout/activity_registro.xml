@@ -6,7 +6,7 @@
     android:layout_height="match_parent"
     android:background="@android:color/white"
     android:fillViewport="true"
-    tools:context=".RegistroActivity"> <!-- CAMBIO: Corregido de .ConexionBackend -->
+    tools:context=".RegistroActivity">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -75,13 +75,45 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
-            android:hint="Semestre">
+            android:hint="Semestre (Opcional)">
 
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/etSemestre"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:inputType="number" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- ***** CAMPO REQUERIDO: NÚMERO DE CONTROL ***** -->
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/tilNumeroControl"
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:hint="Número de Control (Requerido)">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etNumeroControl"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="number" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- ***** CAMPO REQUERIDO: NÚMERO DE TELÉFONO ***** -->
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/tilNumeroTelefono"
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:hint="Número de Teléfono (Requerido)">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etNumeroTelefono"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="phone" />
         </com.google.android.material.textfield.TextInputLayout>
 
         <com.google.android.material.textfield.TextInputLayout
@@ -99,7 +131,6 @@
                 android:inputType="textCapWords" />
         </com.google.android.material.textfield.TextInputLayout>
 
-        <!-- CAMPO AÑADIDO -->
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/tilCorreoInstitucional"
             style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
@@ -114,7 +145,6 @@
                 android:layout_height="wrap_content"
                 android:inputType="textEmailAddress" />
         </com.google.android.material.textfield.TextInputLayout>
-        <!-- FIN DE CAMPO AÑADIDO -->
 
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/tilContrasena"

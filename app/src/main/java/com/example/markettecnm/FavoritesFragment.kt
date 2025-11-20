@@ -1,17 +1,24 @@
 package com.example.markettecnm
 
-import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
+import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.markettecnm.adapters.ProductAdapter
-import com.example.markettecnm.models.Product
+import com.example.markettecnm.network.FavoriteResponse  // ← ¡IMPORT CLAVE!
+import com.example.markettecnm.network.ProductModel
+import com.example.markettecnm.network.RetrofitClient
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class FavoritesFragment : Fragment() {
 
@@ -30,42 +37,66 @@ class FavoritesFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
         rvFavorites.layoutManager = LinearLayoutManager(requireContext())
-        updateFavorites()
+        rvFavorites.isNestedScrollingEnabled = false
+
+        loadFavoritesFromServer()
     }
 
-    fun updateFavorites() {
-        val sharedPrefs = requireContext().getSharedPreferences("favorites", Context.MODE_PRIVATE)
-        val favoriteIds = sharedPrefs.getStringSet("ids", setOf()) ?: setOf()
+    private fun loadFavoritesFromServer() {
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val response = RetrofitClient.instance.getFavorites()
 
-        val allProducts = listOf(
-            Product(1, "Producto 1", 59.99, 4.0f, 24, R.drawable.papas_fritas),
-            Product(2, "Teclado Mecánico", 85.00, 4.5f, 150, R.drawable.teclado),
-            Product(3, "Camiseta Vintage", 25.50, 4.8f, 78, R.drawable.camiseta),
-            Product(4, "Mouse Inalámbrico", 19.99, 4.2f, 95, R.drawable.mouse)
-        )
+                withContext(Dispatchers.Main) {
+                    if (response.isSuccessful && response.body() != null) {
+                        // ← MAPPING PERFECTO: del JSON → FavoriteResponse → ProductModel
+                        val favoriteProducts = response.body()!!.map { it.product }
 
-        val favorites = allProducts.filter { favoriteIds.contains(it.id.toString()) }
-
-        if (favorites.isEmpty()) {
-            tvEmpty.visibility = View.VISIBLE
-            rvFavorites.visibility = View.GONE
-        } else {
-            tvEmpty.visibility = View.GONE
-            rvFavorites.visibility = View.VISIBLE
-            rvFavorites.adapter = ProductAdapter(
-                favorites,
-                onClick = { product ->
-                    val intent = Intent(requireContext(), ProductDetailActivity::class.java).apply {
-                        putExtra("product", product)
+                        if (favoriteProducts.isEmpty()) {
+                            showEmptyState()
+                        } else {
+                            showFavorites(favoriteProducts)
+                        }
+                    } else {
+                        Toast.makeText(requireContext(), "Error al cargar favoritos", Toast.LENGTH_SHORT).show()
+                        showEmptyState()
                     }
-                    startActivity(intent)
-                },
-                context = requireContext(),
-                onFavoriteChanged = {
-                    updateFavorites()
                 }
-            )
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    Log.e("Favorites", "Error de conexión", e)
+                    Toast.makeText(requireContext(), "Sin conexión", Toast.LENGTH_SHORT).show()
+                    showEmptyState()
+                }
+            }
         }
+    }
+
+    private fun showFavorites(products: List<ProductModel>) {
+        tvEmpty.visibility = View.GONE
+        rvFavorites.visibility = View.VISIBLE
+
+        rvFavorites.adapter = ProductAdapter(
+            products = products,
+            onItemClick = { product ->
+                val intent = Intent(requireContext(), ProductDetailActivity::class.java).apply {
+                    putExtra("PRODUCT_ID", product.id)
+                }
+                startActivity(intent)
+            }
+        )
+    }
+
+    private fun showEmptyState() {
+        tvEmpty.visibility = View.VISIBLE
+        rvFavorites.visibility = View.GONE
+        tvEmpty.text = "No tienes productos favoritos aún ❤️"
+    }
+
+    override fun onResume() {
+        super.onResume()
+        loadFavoritesFromServer()  // Recarga cada vez que entras
     }
 }
