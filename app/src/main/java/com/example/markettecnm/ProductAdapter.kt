@@ -1,5 +1,6 @@
 package com.example.markettecnm.adapters
 
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -10,29 +11,26 @@ import android.widget.Toast
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.example.markettecnm.R
-import com.example.markettecnm.network.AddFavoriteRequest
+import com.example.markettecnm.models.ProductModel
 import com.example.markettecnm.network.RetrofitClient
+import com.example.markettecnm.network.ToggleFavoriteRequest
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-// 👇 CORRECCIÓN 1: Importar el modelo correcto
-import com.example.markettecnm.models.ProductModel
-
 class ProductAdapter(
-    // 👇 CORRECCIÓN 2: 'var' para poder actualizar la lista desde HomeFragment
     private var products: List<ProductModel>,
     private val onItemClick: (ProductModel) -> Unit
 ) : RecyclerView.Adapter<ProductAdapter.ProductViewHolder>() {
 
+    // Conjunto de IDs que son favoritos
     private val favoriteCache = mutableSetOf<Int>()
 
     inner class ProductViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
-        // Asegúrate de que estos IDs coincidan con tu item_product.xml
-        val ivProduct: ImageView = itemView.findViewById(R.id.ivProductImage) // A veces lo tienes como ivProductImage o ivProduct
+        val ivProduct: ImageView = itemView.findViewById(R.id.ivProductImage)
         val tvProductName: TextView = itemView.findViewById(R.id.tvProductName)
-        val tvProductPrice: TextView = itemView.findViewById(R.id.tvProductPrice) // A veces lo tienes como tvPrice
+        val tvProductPrice: TextView = itemView.findViewById(R.id.tvProductPrice)
         val btnFavorite: ImageButton = itemView.findViewById(R.id.btnFavorite)
     }
 
@@ -44,57 +42,66 @@ class ProductAdapter(
 
     override fun onBindViewHolder(holder: ProductViewHolder, position: Int) {
         val product = products[position]
+
+        // 1. Determinar si es favorito según el caché local
         val isFavorite = favoriteCache.contains(product.id)
 
         holder.tvProductName.text = product.name
         holder.tvProductPrice.text = "$${product.price}"
 
-        // 👇 CORRECCIÓN 3: Usar 'image' (definido en models.kt), no 'productImage'
+        // Carga de imagen
         if (!product.image.isNullOrBlank()) {
             Glide.with(holder.itemView.context)
                 .load(product.image)
                 .placeholder(android.R.drawable.ic_menu_gallery)
-                .error(android.R.drawable.stat_notify_error)
                 .centerCrop()
                 .into(holder.ivProduct)
         } else {
             holder.ivProduct.setImageResource(android.R.drawable.ic_menu_gallery)
         }
 
-        // Estado visual del botón favorito
-        holder.btnFavorite.setImageResource(
-            if (isFavorite) R.drawable.ic_favorite
-            else R.drawable.ic_favorite_border
-        )
-        holder.btnFavorite.isSelected = isFavorite
+        // 2. Pintar el corazón correctamente al cargar
+        updateFavoriteIcon(holder.btnFavorite, isFavorite)
 
-        // Click en Favorito
+        // 3. LÓGICA DE CLIC (TOGGLE)
         holder.btnFavorite.setOnClickListener {
+            // Estado actual ANTES de hacer el cambio
             val wasFavorite = favoriteCache.contains(product.id)
-            val isNowFavoriteOptimistic = !wasFavorite
 
-            // Animación y cambio visual inmediato (Optimista)
-            holder.btnFavorite.setImageResource(
-                if (isNowFavoriteOptimistic) R.drawable.ic_favorite
-                else R.drawable.ic_favorite_border
-            )
-            holder.btnFavorite.scaleX = 0.8f
-            holder.btnFavorite.scaleY = 0.8f
-            holder.btnFavorite.animate().scaleX(1f).scaleY(1f).setDuration(200).start()
+            // Estado deseado (lo opuesto al actual)
+            val newStatus = !wasFavorite
 
+            // A. Cambio Visual Inmediato (Optimista)
+            updateFavoriteIcon(holder.btnFavorite, newStatus)
+
+            // Animación pequeña
+            holder.btnFavorite.animate().scaleX(1.2f).scaleY(1.2f).setDuration(100).withEndAction {
+                holder.btnFavorite.animate().scaleX(1f).scaleY(1f).setDuration(100).start()
+            }.start()
+
+            // B. Actualizar caché local temporalmente
+            if (newStatus) {
+                favoriteCache.add(product.id)
+                Toast.makeText(holder.itemView.context, "Añadido a favoritos", Toast.LENGTH_SHORT).show()
+            } else {
+                favoriteCache.remove(product.id)
+                Toast.makeText(holder.itemView.context, "Eliminado de favoritos", Toast.LENGTH_SHORT).show()
+            }
+
+            // C. Llamada al Servidor en segundo plano
             CoroutineScope(Dispatchers.Main).launch {
-                val success = toggleFavoriteOnServer(product.id, isNowFavoriteOptimistic)
+                val success = toggleFavoriteOnServer(product.id)
 
-                if (success) {
-                    if (isNowFavoriteOptimistic) favoriteCache.add(product.id)
-                    else favoriteCache.remove(product.id)
+                if (!success) {
+                    // D. SI FALLA: Revertimos todo (Rollback)
+                    Log.e("FAV_ERROR", "El servidor falló al cambiar favorito ID: ${product.id}")
+
+                    if (wasFavorite) favoriteCache.add(product.id) else favoriteCache.remove(product.id)
+                    updateFavoriteIcon(holder.btnFavorite, wasFavorite) // Regresamos al icono anterior
+
+                    Toast.makeText(holder.itemView.context, "Error al sincronizar favorito", Toast.LENGTH_SHORT).show()
                 } else {
-                    // Revertir si falla
-                    holder.btnFavorite.setImageResource(
-                        if (wasFavorite) R.drawable.ic_favorite
-                        else R.drawable.ic_favorite_border
-                    )
-                    Toast.makeText(holder.itemView.context, "Error al actualizar favorito", Toast.LENGTH_SHORT).show()
+                    Log.d("FAV_SUCCESS", "Favorito actualizado en servidor correctamente")
                 }
             }
         }
@@ -104,33 +111,40 @@ class ProductAdapter(
 
     override fun getItemCount() = products.size
 
-    // 👇 CORRECCIÓN 4: Función necesaria para el HomeFragment
     fun updateProducts(newProducts: List<ProductModel>) {
         this.products = newProducts
         notifyDataSetChanged()
     }
 
-    private suspend fun toggleFavoriteOnServer(productId: Int, add: Boolean): Boolean = withContext(Dispatchers.IO) {
+    fun preloadFavorites(favoriteIds: List<Int>) {
+        favoriteCache.clear()
+        favoriteCache.addAll(favoriteIds)
+        notifyDataSetChanged()
+    }
+
+    private fun updateFavoriteIcon(button: ImageButton, isFavorite: Boolean) {
+        button.setImageResource(
+            if (isFavorite) R.drawable.ic_favorite // Relleno
+            else R.drawable.ic_favorite_border   // Borde
+        )
+    }
+
+    private suspend fun toggleFavoriteOnServer(productId: Int): Boolean = withContext(Dispatchers.IO) {
         try {
-            if (add) {
-                // 👇 CORRECCIÓN 5: Usar el nombre de parámetro correcto (productId)
-                val request = AddFavoriteRequest(productId = productId)
-                val response = RetrofitClient.instance.addFavorite(request)
-                return@withContext response.isSuccessful
-            } else {
-                // Lógica para borrar favorito (Buscar ID -> Borrar)
-                val getResponse = RetrofitClient.instance.getFavorites()
-                if (getResponse.isSuccessful && getResponse.body() != null) {
-                    getResponse.body()!!.find { it.product.id == productId }?.id?.let { favId ->
-                        val deleteResponse = RetrofitClient.instance.removeFavorite(favId)
-                        return@withContext deleteResponse.isSuccessful
-                    } ?: false
-                } else {
-                    false
-                }
+            Log.d("API_CALL", "Enviando Toggle para producto ID: $productId")
+            val request = ToggleFavoriteRequest(productId)
+            val response = RetrofitClient.instance.toggleFavorite(request)
+
+            if (!response.isSuccessful) {
+                // IMPRIMIR EL ERROR EXACTO DEL SERVIDOR
+                val errorBody = response.errorBody()?.string()
+                Log.e("API_ERROR", "Código: ${response.code()} - Cuerpo: $errorBody")
             }
+
+            return@withContext response.isSuccessful
         } catch (e: Exception) {
-            false
+            Log.e("API_EXCEPTION", "Error de red: ${e.message}")
+            return@withContext false
         }
     }
 }

@@ -1,9 +1,7 @@
 package com.example.markettecnm.network
 
-// Importamos los modelos que están en la carpeta 'models' (ProductModel, ReviewModel, etc)
 import com.example.markettecnm.models.*
-// Importamos los modelos de autenticación que dejaste en 'network' (LoginRequestBody, etc)
-import com.example.markettecnm.network.* import retrofit2.Response
+import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.Body
@@ -21,24 +19,29 @@ interface ApiService {
     @GET("api/products/")
     suspend fun getProducts(): Response<List<ProductModel>>
 
-    // CAMBIO: Usamos ProductModel ya que contiene toda la info necesaria
     @GET("api/products/{id}/")
     suspend fun getProductDetail(@Path("id") productId: Int): Response<ProductModel>
 
     @GET("api/categories/")
     suspend fun getCategories(): Response<List<CategoryModel>>
 
-    // ========== FAVORITOS ==========
-    // Nota: Asegúrate de tener las data class FavoriteResponse y AddFavoriteRequest
-    // Si no las tienes aún, puedes comentar estas líneas temporalmente.
+    // ========== FAVORITOS (ACTUALIZADO) ==========
+
     @GET("api/favorites/")
     suspend fun getFavorites(): Response<List<FavoriteResponse>>
 
+    // 👇 NUEVO ENDPOINT: Toggle (Alternar Favorito)
+    // Usa la clase ToggleFavoriteRequest que creamos en DataModels.kt
+    @POST("api/favorites/toggle/")
+    suspend fun toggleFavorite(@Body request: ToggleFavoriteRequest): Response<Void>
+
+    /* MÉTODOS ANTIGUOS (Los dejo comentados por si acaso)
     @POST("api/favorites/")
     suspend fun addFavorite(@Body request: AddFavoriteRequest): Response<FavoriteResponse>
 
     @DELETE("api/favorites/{id}/")
     suspend fun removeFavorite(@Path("id") favoriteId: Int): Response<Unit>
+    */
 
     // ========== AUTENTICACIÓN ==========
     @POST("api/token/")
@@ -48,15 +51,12 @@ interface ApiService {
     suspend fun registerUser(@Body requestBody: RegistrationRequestBody): Response<RegistrationResponse>
 
     // ========== COMENTARIOS (REVIEWS) ==========
-    // ESTO ES LO QUE NECESITAMOS PARA EL CARRUSEL DE TENDENCIAS 👇
     @GET("api/reviews/")
     suspend fun getReviews(): Response<List<ReviewModel>>
 
-    // Nota: Si aún no tienes "CreateReviewRequest" creado, puedes comentar esto
     @POST("api/reviews/")
     suspend fun postReview(@Body review: CreateReviewRequest): Response<Void>
 
-    // Nota: Si aún no tienes "UpdateReviewRequest" creado, puedes comentar esto
     @PUT("api/reviews/{id}/")
     suspend fun updateReview(
         @Path("id") reviewId: Int,
@@ -73,7 +73,7 @@ interface ApiService {
 object RetrofitClient {
 
     private val okHttpClient = okhttp3.OkHttpClient.Builder()
-        .addInterceptor(AuthInterceptor()) // Asegúrate de tener tu clase AuthInterceptor
+        .addInterceptor(AuthInterceptor()) // Tu interceptor para el token
         .build()
 
     val instance: ApiService by lazy {

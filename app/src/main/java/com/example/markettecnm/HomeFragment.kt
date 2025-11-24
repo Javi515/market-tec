@@ -13,11 +13,8 @@ import com.example.markettecnm.adapters.BannerAdapter
 import com.example.markettecnm.adapters.CategoryAdapter
 import com.example.markettecnm.adapters.ProductAdapter
 import com.example.markettecnm.databinding.FragmentHomeBinding
-
-// Modelos correctos
 import com.example.markettecnm.models.ProductModel
 import com.example.markettecnm.models.ReviewModel
-
 import com.example.markettecnm.network.RetrofitClient
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -81,13 +78,16 @@ class HomeFragment : Fragment() {
     private fun fetchData() {
         lifecycleScope.launch(Dispatchers.IO) {
             try {
+                // CARGA EN PARALELO: Categorías, Productos, Reviews y FAVORITOS
                 val deferredCategories = async { RetrofitClient.instance.getCategories() }
                 val deferredProducts = async { RetrofitClient.instance.getProducts() }
                 val deferredReviews = async { RetrofitClient.instance.getReviews() }
+                val deferredFavorites = async { RetrofitClient.instance.getFavorites() } // <--- NUEVO
 
                 val resCategories = deferredCategories.await()
                 val resProducts = deferredProducts.await()
                 val resReviews = deferredReviews.await()
+                val resFavorites = deferredFavorites.await() // <--- NUEVO
 
                 withContext(Dispatchers.Main) {
                     // A. Categorías
@@ -95,13 +95,24 @@ class HomeFragment : Fragment() {
                         categoryAdapter.updateCategories(resCategories.body() ?: emptyList())
                     }
 
-                    // B. Productos
+                    // B. Favoritos (Pre-carga para pintar corazones rojos)
+                    val favoriteIds = if (resFavorites.isSuccessful && resFavorites.body() != null) {
+                        // Obtenemos solo los IDs de los productos favoritos
+                        resFavorites.body()!!.map { it.product.id }
+                    } else {
+                        emptyList()
+                    }
+                    // Le avisamos al adaptador cuáles son favoritos antes de cargar los productos
+                    // NOTA: Necesitaremos agregar esta función 'preloadFavorites' al ProductAdapter en el siguiente paso
+                    productAdapter.preloadFavorites(favoriteIds)
+
+                    // C. Productos
                     val allProducts = resProducts.body() ?: emptyList()
                     if (resProducts.isSuccessful) {
                         productAdapter.updateProducts(allProducts)
                     }
 
-                    // C. LÓGICA DE TENDENCIAS
+                    // D. Tendencias
                     if (resReviews.isSuccessful && resProducts.isSuccessful) {
                         val allReviews = resReviews.body() ?: emptyList()
                         Log.d("TENDENCIAS", "Reviews descargadas: ${allReviews.size}")
@@ -122,17 +133,14 @@ class HomeFragment : Fragment() {
             return
         }
 
-        // 1. Agrupar reviews por ID de producto
         val reviewsByProduct = reviews.groupBy { it.product }
 
-        // 2. Calcular promedio
         val productRatings = reviewsByProduct.mapValues { entry ->
             val totalStars = entry.value.sumOf { it.rating }
             val count = entry.value.size
             if (count > 0) totalStars.toDouble() / count else 0.0
         }
 
-        // 3. Obtener los IDs de los 3 mejores
         val top3Ids = productRatings.entries
             .sortedByDescending { it.value }
             .take(3)
@@ -140,16 +148,12 @@ class HomeFragment : Fragment() {
 
         Log.d("TENDENCIAS", "IDs ganadores: $top3Ids")
 
-        // 4. Filtrar los productos ganadores
-        // CORRECCIÓN AQUÍ: Quitamos el filtro de imagen (!it.image.isNullOrBlank())
-        // Ahora el banner mostrará el producto aunque no tenga foto.
         val topProducts = products.filter {
             it.id in top3Ids
         }
 
         Log.d("TENDENCIAS", "Productos enviados al banner: ${topProducts.size}")
 
-        // 5. Actualizar el BannerAdapter
         bannerAdapter.updateBanners(topProducts)
     }
 
