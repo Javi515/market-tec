@@ -146,7 +146,7 @@
             android:text="Guardar Cambios"
             android:textSize="18sp"
             android:textStyle="bold"
-            android:backgroundTint="#0000FF"
+            android:backgroundTint="#2196F3"
             app:cornerRadius="12dp" />
 
     </LinearLayout>
