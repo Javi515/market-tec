@@ -8,70 +8,88 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="16dp">
+        android:orientation="vertical">
 
-        <!-- Imagen del producto -->
-        <ImageView
-            android:id="@+id/ivProductImage"
-            android:layout_width="match_parent"
-            android:layout_height="300dp"
-            android:scaleType="centerCrop"
-            android:background="#E0E0E0"
-            android:contentDescription="Producto"
-            android:src="@drawable/ic_placeholder_product" />
-
-        <!-- Nombre y precio -->
-        <TextView
-            android:id="@+id/tvProductName"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:text="Nombre del producto"
-            android:textSize="26sp"
-            android:textStyle="bold"
-            android:textColor="#000" />
-
-        <TextView
-            android:id="@+id/tvPrice"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="S/ 99.90"
-            android:textSize="24sp"
-            android:textColor="#E91E63"
-            android:textStyle="bold" />
-
-        <!-- Descripción -->
-        <TextView
-            android:id="@+id/tvDescription"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:text="Descripción del producto..."
-            android:textSize="16sp"
-            android:textColor="#333"
-            android:lineSpacingExtra="6dp" />
-
-        <!-- Vendedor -->
         <androidx.cardview.widget.CardView
             android:layout_width="match_parent"
+            android:layout_height="230dp"
+            android:layout_marginHorizontal="16dp"
+            android:layout_marginTop="16dp"
+            android:layout_marginBottom="4dp"
+            app:cardCornerRadius="24dp"
+            app:cardElevation="4dp"
+            app:cardBackgroundColor="#FFFFFF">
+
+            <ImageView
+                android:id="@+id/ivProductImage"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scaleType="centerCrop"
+                android:background="#E0E0E0"
+                android:contentDescription="Producto"
+                android:src="@android:drawable/ic_menu_gallery"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="?android:attr/selectableItemBackground" />
+        </androidx.cardview.widget.CardView>
+
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="20dp"
-            app:cardCornerRadius="16dp"
-            app:cardElevation="6dp">
+            android:orientation="vertical"
+            android:paddingHorizontal="20dp"
+            android:paddingBottom="20dp">
+
+            <TextView
+                android:id="@+id/tvProductName"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Nombre del producto"
+                android:textSize="26sp"
+                android:textStyle="bold"
+                android:textColor="#000"
+                android:layout_marginTop="8dp"/>
+
+            <TextView
+                android:id="@+id/tvPrice"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="S/ 99.90"
+                android:textSize="24sp"
+                android:textColor="#333333"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="Descripción"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:textColor="#000" />
+
+            <TextView
+                android:id="@+id/tvDescription"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="Descripción del producto..."
+                android:textSize="16sp"
+                android:textColor="#333"
+                android:lineSpacingExtra="4dp" />
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
-                android:padding="16dp"
+                android:layout_marginTop="16dp"
                 android:gravity="center_vertical">
 
                 <ImageView
                     android:id="@+id/ivVendorImage"
-                    android:layout_width="70dp"
-                    android:layout_height="70dp"
+                    android:layout_width="50dp"
+                    android:layout_height="50dp"
                     android:src="@drawable/ic_person"
                     android:scaleType="centerCrop" />
 
@@ -80,176 +98,190 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:orientation="vertical"
-                    android:layout_marginStart="16dp">
+                    android:layout_marginStart="12dp">
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Vendido por"
-                        android:textSize="14sp"
+                        android:textSize="13sp"
                         android:textColor="#666" />
 
                     <TextView
                         android:id="@+id/tvVendorName"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Carlos Ramírez"
-                        android:textSize="19sp"
+                        android:text="Vendedor"
+                        android:textSize="16sp"
                         android:textStyle="bold"
-                        android:layout_marginTop="4dp" />
+                        android:textColor="#000" />
 
                     <TextView
                         android:id="@+id/tvVendorCareer"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Ingeniería en Sistemas"
-                        android:textSize="15sp"
-                        android:textColor="#555"
-                        android:layout_marginTop="4dp" />
+                        android:text="Carrera"
+                        android:textSize="13sp"
+                        android:textColor="#555" />
                 </LinearLayout>
             </LinearLayout>
-        </androidx.cardview.widget.CardView>
 
-        <!-- Cantidad -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:layout_marginTop="24dp"
-            android:background="#FFFFFF"
-            android:padding="12dp"
-            android:elevation="4dp"
-            android:backgroundTint="#FFFFFF">
-
-            <Button
-                android:id="@+id/btnDecrease"
-                style="?android:attr/buttonBarButtonStyle"
-                android:layout_width="56dp"
-                android:layout_height="56dp"
-                android:text="–"
-                android:textSize="28sp"
-                android:textStyle="bold"
-                android:textColor="#000000"
-                android:backgroundTint="#FF5252" /> <!-- ROJO -->
-
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/etQuantity"
-                android:layout_width="90dp"
-                android:layout_height="wrap_content"
-                android:text="1"
-                android:textSize="20sp"
-                android:textAlignment="center"
-                android:inputType="none"
-                android:focusable="false"
-                android:layout_marginHorizontal="16dp" />
-
-            <Button
-                android:id="@+id/btnIncrease"
-                style="?android:attr/buttonBarButtonStyle"
-                android:layout_width="56dp"
-                android:layout_height="56dp"
-                android:text="+"
-                android:textSize="28sp"
-                android:textStyle="bold"
-                android:textColor="#000000"
-                android:backgroundTint="#4CAF50" /> <!-- VERDE -->
-
-            <Button
-                android:id="@+id/btnAddToCart"
-                android:layout_width="0dp"
-                android:layout_weight="1"
-                android:layout_height="56dp"
-                android:text="Agregar al carrito"
-                android:textStyle="bold"
-                android:textColor="#FFFFFF"
-                android:backgroundTint="#E91E63"
-                android:layout_marginStart="16dp" />
-        </LinearLayout>
-
-        <!-- Reseñas -->
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Reseñas del producto"
-            android:textSize="22sp"
-            android:textStyle="bold"
-            android:layout_marginTop="32dp"
-            android:layout_marginBottom="12dp" />
-
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/rvReviews"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:nestedScrollingEnabled="false" />
-
-        <!-- Formulario para nueva reseña / editar -->
-        <androidx.cardview.widget.CardView
-            android:id="@+id/cardNewReview"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
-            app:cardCornerRadius="16dp"
-            app:cardElevation="8dp">
-
-            <LinearLayout
+            <androidx.cardview.widget.CardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="20dp">
+                android:layout_marginTop="16dp"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="0dp"
+                app:cardBackgroundColor="#F0F0F0">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:padding="6dp">
+
+                    <Button
+                        android:id="@+id/btnDecrease"
+                        style="?android:attr/buttonBarButtonStyle"
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        android:text="–"
+                        android:textSize="24sp"
+                        android:textStyle="bold"
+                        android:textColor="#555" />
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/etQuantity"
+                        android:layout_width="60dp"
+                        android:layout_height="wrap_content"
+                        android:text="1"
+                        android:textSize="18sp"
+                        android:textAlignment="center"
+                        android:inputType="none"
+                        android:focusable="false"
+                        android:background="@null"/>
+
+                    <Button
+                        android:id="@+id/btnIncrease"
+                        style="?android:attr/buttonBarButtonStyle"
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        android:text="+"
+                        android:textSize="24sp"
+                        android:textStyle="bold"
+                        android:textColor="#555" />
+
+                    <Button
+                        android:id="@+id/btnAddToCart"
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:layout_height="55dp"
+                        android:text="Agregar al carrito"
+                        android:textStyle="bold"
+                        android:textColor="#FFFFFF"
+                        android:backgroundTint="#4CAF50"
+                        android:layout_marginStart="12dp"
+                        app:cornerRadius="12dp" />
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:background="#E0E0E0"
+                android:layout_marginVertical="16dp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Deja tu reseña"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:textColor="#000"
+                android:layout_marginBottom="8dp" />
+
+            <LinearLayout
+                android:id="@+id/layoutNewReview"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
 
                 <TextView
                     android:id="@+id/tvReviewTitle"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Deja tu reseña"
-                    android:textSize="19sp"
-                    android:textStyle="bold" />
+                    android:text="Califica este producto"
+                    android:textSize="14sp"
+                    android:textColor="#555"
+                    android:layout_gravity="start"/>
 
-                <!-- Estrellas grandes y bonitas -->
                 <RatingBar
                     android:id="@+id/ratingBarInput"
                     style="?android:attr/ratingBarStyle"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_gravity="center_horizontal"
-                    android:layout_marginTop="12dp"
+                    android:layout_marginTop="4dp"
                     android:numStars="5"
                     android:stepSize="1"
-                    android:rating="0"
+                    android:rating="1"
                     android:isIndicator="false"
-                    android:scaleX="1.3"
-                    android:scaleY="1.3"
+                    android:scaleX="0.9"
+                    android:scaleY="0.9"
+                    android:transformPivotX="0dp"
                     android:progressTint="@android:color/holo_orange_light"
-                    android:secondaryProgressTint="@android:color/darker_gray"
-                    android:indeterminateTint="@android:color/holo_orange_light"/>
+                    android:secondaryProgressTint="@android:color/darker_gray" />
 
                 <com.google.android.material.textfield.TextInputLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
-                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+                    android:layout_marginTop="8dp"
+                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                    app:boxCornerRadiusTopStart="12dp"
+                    app:boxCornerRadiusTopEnd="12dp"
+                    app:boxCornerRadiusBottomStart="12dp"
+                    app:boxCornerRadiusBottomEnd="12dp"
+                    app:boxStrokeColor="#000000"
+                    app:hintTextColor="#000000">
 
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/etComment"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:hint="Escribe tu opinión sobre el producto..."
-                        android:minLines="3" />
+                        android:hint="Escribe tu opinión..."
+                        android:minLines="3"
+                        android:gravity="top"/>
                 </com.google.android.material.textfield.TextInputLayout>
 
                 <Button
                     android:id="@+id/btnSubmitReview"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
+                    android:layout_marginTop="12dp"
                     android:text="Enviar reseña"
                     android:textStyle="bold"
-                    android:backgroundTint="#4CAF50"
-                    android:textColor="#FFFFFF" />
+                    android:backgroundTint="#2196F3"
+                    android:textColor="#FFFFFF"
+                    app:cornerRadius="12dp"/>
             </LinearLayout>
-        </androidx.cardview.widget.CardView>
 
-        <View android:layout_width="match_parent" android:layout_height="40dp"/>
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Comentarios recientes"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:textColor="#555"
+                android:layout_marginTop="20dp"
+                android:layout_marginBottom="8dp" />
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rvReviews"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:nestedScrollingEnabled="false" />
+
+            <View android:layout_width="match_parent" android:layout_height="16dp"/>
+        </LinearLayout>
     </LinearLayout>
 </ScrollView>
