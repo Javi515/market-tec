@@ -4,14 +4,20 @@ import android.content.Context
 import android.os.Bundle
 import android.view.View
 import android.widget.TextView
-// import androidx.activity.enableEdgeToEdge
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.content.res.AppCompatResources
+import androidx.core.content.ContextCompat // Import necesario para ContextCompat
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.markettecnm.adapters.ComprasAdapter
-import com.example.markettecnm.models.Product
-import com.google.android.material.appbar.MaterialToolbar
+import com.example.markettecnm.models.ProductModel
+import com.example.markettecnm.network.RetrofitClient
+import com.google.android.material.appbar.MaterialToolbar // Import necesario
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class MisComprasActivity : AppCompatActivity() {
 
@@ -19,81 +25,111 @@ class MisComprasActivity : AppCompatActivity() {
     private lateinit var tvNoCompras: TextView
     private lateinit var comprasAdapter: ComprasAdapter
 
-    private var comprasList = mutableListOf<Product>()
+    private var comprasList = mutableListOf<ProductModel>()
+    private var comprasQuantities = mapOf<String, Int>()
 
-    // --- CAMBIO 1 ---
-    // El nombre DEBE COINCIDIR con el usado en CartActivity
-    private val PURCHASE_PREFS_NAME = "my_purchases" // Antes decía "purchase_items"
+    private val PURCHASE_PREFS_NAME = "my_purchases"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // enableEdgeToEdge()
         setContentView(R.layout.activity_mis_compras)
 
+        // CORRECCIÓN 1: Manejo seguro del findViewById y uso del apply scope.
         val toolbar = findViewById<MaterialToolbar>(R.id.toolbar)
-        toolbar.navigationIcon = AppCompatResources.getDrawable(
-            this, androidx.appcompat.R.drawable.abc_ic_ab_back_material
-        )
-        toolbar.setNavigationOnClickListener { onBackPressedDispatcher.onBackPressed() }
+        toolbar?.apply {
+            navigationIcon = ContextCompat.getDrawable( // Usamos ContextCompat, más seguro
+                this@MisComprasActivity,
+                androidx.appcompat.R.drawable.abc_ic_ab_back_material
+            )
+            setNavigationOnClickListener { onBackPressedDispatcher.onBackPressed() }
+        }
 
+        // CORRECCIÓN 2: Asegurarnos que la variable del adaptador se inicialice antes
         rvMisCompras = findViewById(R.id.rvMisCompras)
         tvNoCompras = findViewById(R.id.tvNoCompras)
 
         loadPurchaseItems()
     }
 
+    // --- Funciones de Lógica Asíncrona ---
 
     private fun loadPurchaseItems() {
         val purchaseMap = loadPurchasesFromPrefs(this)
+        comprasQuantities = purchaseMap
         val purchaseIds = purchaseMap.keys
 
-
-        val allProducts = listOf(
-            Product(1, "Papas Francesas", 59.99, 4.0f, 120, R.drawable.papas_fritas),
-            Product(2, "Teclado Mecánico", 85.00, 4.5f, 550, R.drawable.teclado),
-            Product(3, "Camiseta Vintage", 25.50, 4.8f, 780, R.drawable.camiseta),
-            Product(4, "Mouse Inalámbrico", 19.99, 4.2f, 320, R.drawable.mouse)
-
-        )
-
-        comprasList.clear()
-
-        allProducts.forEach { product ->
-            val idString = product.id.toString()
-            if (purchaseIds.contains(idString)) {
-                val quantity = purchaseMap[idString] ?: 1
-                comprasList.add(product.copy(quantityInCart = quantity))
-            }
+        if (purchaseIds.isEmpty()) {
+            showEmptyState()
+            return
         }
 
-        if (comprasList.isEmpty()) {
-            tvNoCompras.visibility = View.VISIBLE
-            rvMisCompras.visibility = View.GONE
-        } else {
-            tvNoCompras.visibility = View.GONE
-            rvMisCompras.visibility = View.VISIBLE
-            setupRecyclerView()
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val response = RetrofitClient.instance.getProducts()
+
+                withContext(Dispatchers.Main) {
+                    if (response.isSuccessful) {
+                        val allProducts = response.body() ?: emptyList()
+
+                        // 3. Filtrar: Obtener los detalles de los productos comprados
+                        val purchasedProducts = allProducts.filter { product ->
+                            purchaseIds.contains(product.id.toString())
+                        }
+
+                        comprasList.clear()
+                        comprasList.addAll(purchasedProducts)
+
+                        if (comprasList.isEmpty()) {
+                            showEmptyState()
+                        } else {
+                            showResults() // Llama a setupRecyclerView
+                        }
+                    } else {
+                        Toast.makeText(this@MisComprasActivity, "Error al cargar catálogo", Toast.LENGTH_SHORT).show()
+                        showEmptyState()
+                    }
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(this@MisComprasActivity, "Error de red", Toast.LENGTH_SHORT).show()
+                    showEmptyState()
+                }
+            }
         }
     }
 
     private fun setupRecyclerView() {
+        // CORRECCIÓN 3: Pasamos la lista de productos (ProductModel) y el mapa de cantidades
         comprasAdapter = ComprasAdapter(
             comprasList,
+            comprasQuantities,
             onContactClick = { product ->
                 // Lógica para abrir chat
+                Toast.makeText(this, "Contactar vendedor de ${product.name}", Toast.LENGTH_SHORT).show()
             }
         )
         rvMisCompras.layoutManager = LinearLayoutManager(this)
         rvMisCompras.adapter = comprasAdapter
     }
 
-    // Esta función LEE las compras guardadas
+    // --- Funciones de Estado y Utilidad ---
+
+    private fun showResults() {
+        tvNoCompras.visibility = View.GONE
+        rvMisCompras.visibility = View.VISIBLE
+        setupRecyclerView()
+    }
+
+    private fun showEmptyState() {
+        tvNoCompras.visibility = View.VISIBLE
+        rvMisCompras.visibility = View.GONE
+        tvNoCompras.text = "Aún no tienes compras realizadas."
+    }
+
+    // Función que lee las compras guardadas (Se deja igual)
     private fun loadPurchasesFromPrefs(context: Context): Map<String, Int> {
         val prefs = context.getSharedPreferences(PURCHASE_PREFS_NAME, Context.MODE_PRIVATE)
-
-        // --- CAMBIO 2 ---
-        // La clave ("key") DEBE COINCIDIR con la usada en CartActivity
-        val serializedMap = prefs.getString("purchases_map", "") ?: "" // Antes decía "purchase_map"
+        val serializedMap = prefs.getString("purchases_map", "") ?: ""
 
         if (serializedMap.isEmpty()) return emptyMap()
 
