@@ -11,16 +11,16 @@ import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.example.markettecnm.R
 import com.example.markettecnm.models.ReviewModel
-import de.hdodenhof.circleimageview.CircleImageView
 
 class ReviewAdapter(
     private val reviews: List<ReviewModel>,
-    private val currentUserName: String, // <-- usuario actual
-    private val onActionClick: (String, ReviewModel) -> Unit // <-- callback para edit/delete
+    private val currentUserName: String,
+    private val onActionClick: (String, ReviewModel) -> Unit
 ) : RecyclerView.Adapter<ReviewAdapter.ReviewViewHolder>() {
 
     inner class ReviewViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-        val ivReviewerImage: CircleImageView = view.findViewById(R.id.ivReviewerImage)
+        // Usamos ImageView estándar (Glide se encarga del círculo)
+        val ivReviewerImage: ImageView = view.findViewById(R.id.ivReviewerImage)
         val tvReviewerName: TextView = view.findViewById(R.id.tvReviewerName)
         val tvReviewerCareer: TextView = view.findViewById(R.id.tvReviewerCareer)
         val tvComment: TextView = view.findViewById(R.id.tvComment)
@@ -36,34 +36,48 @@ class ReviewAdapter(
 
     override fun onBindViewHolder(holder: ReviewViewHolder, position: Int) {
         val review = reviews[position]
+
+        // 1. CORRECCIÓN: Acceso seguro al reviewer (puede ser null)
         val reviewer = review.reviewer
 
-        holder.tvReviewerName.text = reviewer.firstName
-        holder.tvReviewerCareer.text = reviewer.career ?: ""
+        // Usamos el operador Elvis (?:) para valores por defecto
+        val name = reviewer?.firstName ?: "Anónimo"
+        val career = reviewer?.career ?: ""
+        val image = reviewer?.profileImage
+
+        holder.tvReviewerName.text = name
+        holder.tvReviewerCareer.text = career
         holder.tvComment.text = review.comment
         holder.ratingBar.rating = review.rating.toFloat()
 
-        Glide.with(holder.itemView.context)
-            .load(reviewer.profileImage)
-            .placeholder(R.drawable.ic_placeholder_profile)
-            .error(R.drawable.ic_placeholder_profile)
-            .circleCrop()
-            .into(holder.ivReviewerImage)
+        // 2. Carga de imagen segura con Glide
+        if (!image.isNullOrEmpty()) {
+            Glide.with(holder.itemView.context)
+                .load(image)
+                .circleCrop() // Esto hace la imagen redonda sin necesitar librerías extra
+                .placeholder(android.R.drawable.sym_def_app_icon) // Icono por defecto sistema
+                .error(android.R.drawable.sym_def_app_icon)
+                .into(holder.ivReviewerImage)
+        } else {
+            holder.ivReviewerImage.setImageResource(android.R.drawable.sym_def_app_icon)
+        }
 
-        // Mostrar menú solo si el comentario es del usuario actual
-        if (reviewer.firstName == currentUserName) {
+        // 3. Lógica del Menú (Solo si el nombre coincide)
+        // Comparamos con seguridad usando '?'
+        if (reviewer?.firstName == currentUserName) {
             holder.btnOptions.visibility = View.VISIBLE
             holder.btnOptions.setOnClickListener { view ->
+                // Asegúrate de tener res/menu/menu_review_options.xml creado
                 val popup = PopupMenu(view.context, view)
                 popup.menuInflater.inflate(R.menu.menu_review_options, popup.menu)
                 popup.setOnMenuItemClickListener { item ->
                     when (item.itemId) {
                         R.id.action_edit -> {
-                            onActionClick("edit", review) // notifica a la Activity
+                            onActionClick("edit", review)
                             true
                         }
                         R.id.action_delete -> {
-                            onActionClick("delete", review) // notifica a la Activity
+                            onActionClick("delete", review)
                             true
                         }
                         else -> false

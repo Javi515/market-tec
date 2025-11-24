@@ -7,18 +7,19 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
-import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.markettecnm.adapters.ProductAdapter
-import com.example.markettecnm.network.FavoriteResponse  // ← ¡IMPORT CLAVE!
-import com.example.markettecnm.network.ProductModel
 import com.example.markettecnm.network.RetrofitClient
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+
+// 👇 CORRECCIÓN CLAVE: El import DEBE ser este (models), NO network
+import com.example.markettecnm.models.ProductModel
+import com.example.markettecnm.network.FavoriteResponse
 
 class FavoritesFragment : Fragment() {
 
@@ -51,7 +52,7 @@ class FavoritesFragment : Fragment() {
 
                 withContext(Dispatchers.Main) {
                     if (response.isSuccessful && response.body() != null) {
-                        // ← MAPPING PERFECTO: del JSON → FavoriteResponse → ProductModel
+                        // Al importar ProductModel correctamente arriba, este map funcionará
                         val favoriteProducts = response.body()!!.map { it.product }
 
                         if (favoriteProducts.isEmpty()) {
@@ -60,33 +61,38 @@ class FavoritesFragment : Fragment() {
                             showFavorites(favoriteProducts)
                         }
                     } else {
-                        Toast.makeText(requireContext(), "Error al cargar favoritos", Toast.LENGTH_SHORT).show()
-                        showEmptyState()
+                        if (response.code() == 404) {
+                            showEmptyState()
+                        } else {
+                            Log.e("Favs", "Error code: ${response.code()}")
+                            showEmptyState()
+                        }
                     }
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
                     Log.e("Favorites", "Error de conexión", e)
-                    Toast.makeText(requireContext(), "Sin conexión", Toast.LENGTH_SHORT).show()
                     showEmptyState()
                 }
             }
         }
     }
 
-    private fun showFavorites(products: List<ProductModel>) {
+    // Recibe List<ProductModel> (del paquete models)
+    private fun showFavorites(list: List<ProductModel>) {
         tvEmpty.visibility = View.GONE
         rvFavorites.visibility = View.VISIBLE
 
-        rvFavorites.adapter = ProductAdapter(
-            products = products,
-            onItemClick = { product ->
-                val intent = Intent(requireContext(), ProductDetailActivity::class.java).apply {
-                    putExtra("PRODUCT_ID", product.id)
-                }
-                startActivity(intent)
-            }
-        )
+        // CORRECCIÓN: Pasamos la lista directamente sin nombre de variable ("products =")
+        // para evitar errores si tu adaptador usa otro nombre en el constructor.
+        rvFavorites.adapter = ProductAdapter(list) { product ->
+
+            // Aquí 'product' ya es reconocido correctamente
+            val intent = Intent(requireContext(), ProductDetailActivity::class.java)
+            // Error 'id' resuelto:
+            intent.putExtra("product_id", product.id)
+            startActivity(intent)
+        }
     }
 
     private fun showEmptyState() {
@@ -97,6 +103,6 @@ class FavoritesFragment : Fragment() {
 
     override fun onResume() {
         super.onResume()
-        loadFavoritesFromServer()  // Recarga cada vez que entras
+        loadFavoritesFromServer()
     }
 }

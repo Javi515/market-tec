@@ -1,6 +1,10 @@
 package com.example.markettecnm.network
 
 import com.google.gson.annotations.SerializedName
+// Importamos el modelo correcto para usarlo en FavoriteResponse
+import com.example.markettecnm.models.ProductModel
+
+// ========== AUTENTICACIÓN ==========
 
 data class LoginRequestBody(
     val username: String,
@@ -13,17 +17,6 @@ data class TokenResponse(
     @SerializedName("refresh")
     val refreshToken: String? = null
 )
-
-data class VendorModel(
-    @SerializedName("first_name")
-    val firstName: String? = null,
-    @SerializedName("profile_image")
-    val profileImage: String? = null,
-    val career: String? = null
-)
-
-
-
 
 data class RegistrationRequestBody(
     val first_name: String,
@@ -56,3 +49,37 @@ data class ErrorResponse(
     val phoneNumber: List<String>? = null
 )
 
+// ========== VENDEDOR ==========
+
+data class VendorModel(
+    @SerializedName("first_name")
+    val firstName: String? = null,
+    @SerializedName("profile_image")
+    val profileImage: String? = null,
+    val career: String? = null
+)
+
+// ========== FAVORITOS (Aquí estaba tu error de duplicado) ==========
+
+data class FavoriteResponse(
+    val id: Int,
+    val product: ProductModel
+)
+
+data class AddFavoriteRequest(
+    @SerializedName("product_id")
+    val productId: Int
+)
+
+// ========== RESEÑAS ==========
+
+data class CreateReviewRequest(
+    val product: Int,
+    val rating: Int,
+    val comment: String
+)
+
+data class UpdateReviewRequest(
+    val rating: Int,
+    val comment: String
+)

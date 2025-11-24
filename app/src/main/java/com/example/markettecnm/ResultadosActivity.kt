@@ -10,12 +10,14 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.markettecnm.adapters.ProductAdapter
-import com.example.markettecnm.network.ProductModel
 import com.example.markettecnm.network.RetrofitClient
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+
+// 👇 CORRECCIÓN 1: Usamos el modelo correcto (models)
+import com.example.markettecnm.models.ProductModel
 
 class ResultadosActivity : AppCompatActivity() {
 
@@ -59,6 +61,8 @@ class ResultadosActivity : AppCompatActivity() {
                 withContext(Dispatchers.Main) {
                     if (response.isSuccessful) {
                         val allProducts = response.body() ?: emptyList()
+
+                        // Filtro (Case Insensitive)
                         val filtered = allProducts.filter {
                             it.name.contains(query, ignoreCase = true) ||
                                     it.description.contains(query, ignoreCase = true) ||
@@ -91,15 +95,15 @@ class ResultadosActivity : AppCompatActivity() {
         textNoResultados.visibility = View.GONE
         rvResultados.visibility = View.VISIBLE
 
-        rvResultados.adapter = ProductAdapter(
-            products = products,
-            onItemClick = { product ->
-                val intent = Intent(this, ProductDetailActivity::class.java).apply {
-                    putExtra("PRODUCT_ID", product.id)
-                }
-                startActivity(intent)
+        // 👇 CORRECCIÓN 2: Pasamos la lista directamente al adaptador
+        rvResultados.adapter = ProductAdapter(products) { product ->
+
+            val intent = Intent(this, ProductDetailActivity::class.java).apply {
+                // 👇 CORRECCIÓN 3: Clave en minúsculas para que coincida con ProductDetailActivity
+                putExtra("product_id", product.id)
             }
-        )
+            startActivity(intent)
+        }
     }
 
     private fun showNoResults() {

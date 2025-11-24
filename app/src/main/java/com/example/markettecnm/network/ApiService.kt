@@ -1,7 +1,9 @@
 package com.example.markettecnm.network
 
+// Importamos los modelos que están en la carpeta 'models' (ProductModel, ReviewModel, etc)
 import com.example.markettecnm.models.*
-import retrofit2.Response
+// Importamos los modelos de autenticación que dejaste en 'network' (LoginRequestBody, etc)
+import com.example.markettecnm.network.* import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.Body
@@ -13,22 +15,22 @@ import retrofit2.http.Path
 
 const val BASE_URL = "http://172.200.235.24/"
 
-/**
- * Interfaz única que define TODOS los endpoints de la API
- */
 interface ApiService {
 
     // ========== PRODUCTOS Y CATEGORÍAS ==========
     @GET("api/products/")
     suspend fun getProducts(): Response<List<ProductModel>>
 
+    // CAMBIO: Usamos ProductModel ya que contiene toda la info necesaria
     @GET("api/products/{id}/")
-    suspend fun getProductDetail(@Path("id") productId: Int): Response<ProductDetailModel>
+    suspend fun getProductDetail(@Path("id") productId: Int): Response<ProductModel>
 
     @GET("api/categories/")
     suspend fun getCategories(): Response<List<CategoryModel>>
 
     // ========== FAVORITOS ==========
+    // Nota: Asegúrate de tener las data class FavoriteResponse y AddFavoriteRequest
+    // Si no las tienes aún, puedes comentar estas líneas temporalmente.
     @GET("api/favorites/")
     suspend fun getFavorites(): Response<List<FavoriteResponse>>
 
@@ -46,13 +48,15 @@ interface ApiService {
     suspend fun registerUser(@Body requestBody: RegistrationRequestBody): Response<RegistrationResponse>
 
     // ========== COMENTARIOS (REVIEWS) ==========
+    // ESTO ES LO QUE NECESITAMOS PARA EL CARRUSEL DE TENDENCIAS 👇
     @GET("api/reviews/")
     suspend fun getReviews(): Response<List<ReviewModel>>
 
+    // Nota: Si aún no tienes "CreateReviewRequest" creado, puedes comentar esto
     @POST("api/reviews/")
     suspend fun postReview(@Body review: CreateReviewRequest): Response<Void>
 
-    // 👇 PUT solo con rating y comment
+    // Nota: Si aún no tienes "UpdateReviewRequest" creado, puedes comentar esto
     @PUT("api/reviews/{id}/")
     suspend fun updateReview(
         @Path("id") reviewId: Int,
@@ -64,12 +68,12 @@ interface ApiService {
 }
 
 /**
- * Singleton para el cliente Retrofit (con interceptor del token)
+ * Singleton para el cliente Retrofit
  */
 object RetrofitClient {
 
     private val okHttpClient = okhttp3.OkHttpClient.Builder()
-        .addInterceptor(AuthInterceptor())
+        .addInterceptor(AuthInterceptor()) // Asegúrate de tener tu clase AuthInterceptor
         .build()
 
     val instance: ApiService by lazy {
