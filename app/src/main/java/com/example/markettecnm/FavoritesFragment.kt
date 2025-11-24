@@ -7,7 +7,9 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
+import android.widget.Toast
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.markettecnm.adapters.ProductAdapter
@@ -16,8 +18,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-
-// 👇 CORRECCIÓN CLAVE: El import DEBE ser este (models), NO network
+// Importamos los modelos correctos
 import com.example.markettecnm.models.ProductModel
 import com.example.markettecnm.network.FavoriteResponse
 
@@ -41,7 +42,11 @@ class FavoritesFragment : Fragment() {
 
         rvFavorites.layoutManager = LinearLayoutManager(requireContext())
         rvFavorites.isNestedScrollingEnabled = false
+    }
 
+    // Al volver a la pantalla, recargamos los favoritos
+    override fun onResume() {
+        super.onResume()
         loadFavoritesFromServer()
     }
 
@@ -52,7 +57,7 @@ class FavoritesFragment : Fragment() {
 
                 withContext(Dispatchers.Main) {
                     if (response.isSuccessful && response.body() != null) {
-                        // Al importar ProductModel correctamente arriba, este map funcionará
+                        // Mapeamos de FavoriteResponse a ProductModel
                         val favoriteProducts = response.body()!!.map { it.product }
 
                         if (favoriteProducts.isEmpty()) {
@@ -61,12 +66,8 @@ class FavoritesFragment : Fragment() {
                             showFavorites(favoriteProducts)
                         }
                     } else {
-                        if (response.code() == 404) {
-                            showEmptyState()
-                        } else {
-                            Log.e("Favs", "Error code: ${response.code()}")
-                            showEmptyState()
-                        }
+                        // Manejo básico de error de API (401, 404, etc.)
+                        showEmptyState()
                     }
                 }
             } catch (e: Exception) {
@@ -78,31 +79,32 @@ class FavoritesFragment : Fragment() {
         }
     }
 
-    // Recibe List<ProductModel> (del paquete models)
-    private fun showFavorites(list: List<ProductModel>) {
+    private fun showFavorites(products: List<ProductModel>) {
         tvEmpty.visibility = View.GONE
         rvFavorites.visibility = View.VISIBLE
 
-        // CORRECCIÓN: Pasamos la lista directamente sin nombre de variable ("products =")
-        // para evitar errores si tu adaptador usa otro nombre en el constructor.
-        rvFavorites.adapter = ProductAdapter(list) { product ->
+        // 1. Inicializamos el adaptador
+        val adapter = ProductAdapter(
+            products = products,
+            onItemClick = { product ->
+                val intent = Intent(requireContext(), ProductDetailActivity::class.java).apply {
+                    putExtra("product_id", product.id)
+                }
+                startActivity(intent)
+            }
+        )
 
-            // Aquí 'product' ya es reconocido correctamente
-            val intent = Intent(requireContext(), ProductDetailActivity::class.java)
-            // Error 'id' resuelto:
-            intent.putExtra("product_id", product.id)
-            startActivity(intent)
-        }
+        // 2. PRECARGA EL CACHÉ: Obtenemos los IDs de la lista actual (todos son favoritos)
+        val favoriteIds = products.map { it.id }
+        adapter.preloadFavorites(favoriteIds) // Forzamos al adapter a pintar los corazones llenos (rojos)
+
+        // 3. Establecemos el adaptador
+        rvFavorites.adapter = adapter
     }
 
     private fun showEmptyState() {
         tvEmpty.visibility = View.VISIBLE
         rvFavorites.visibility = View.GONE
         tvEmpty.text = "No tienes productos favoritos aún ❤️"
-    }
-
-    override fun onResume() {
-        super.onResume()
-        loadFavoritesFromServer()
     }
 }

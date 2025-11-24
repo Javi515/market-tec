@@ -80,9 +80,9 @@ class CuentaFragment : Fragment() {
             startActivity(Intent(requireContext(), PublicacionesActivity::class.java))
         }
 
-        view.findViewById<View>(R.id.rowAccesibilidad).setOnClickListener {
+        /*view.findViewById<View>(R.id.rowAccesibilidad).setOnClickListener {
             startActivity(Intent(requireContext(), AccesibilidadActivity::class.java))
-        }
+        }*/
 
         view.findViewById<View>(R.id.rowLogout).setOnClickListener {
             // Limpiar datos de sesión

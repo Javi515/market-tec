@@ -88,3 +88,11 @@ data class UpdateReviewRequest(
     val rating: Int,
     val comment: String
 )
+
+data class UserProfile(
+    val id: Int,
+    @SerializedName("username")
+    val username: String,
+    @SerializedName("first_name") // Este es el campo que usamos para el filtro
+    val firstName: String
+)

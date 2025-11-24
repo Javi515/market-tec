@@ -2,7 +2,7 @@ package com.example.markettecnm
 
 import android.content.Intent
 import android.os.Bundle
-import android.util.Log // <--- IMPORT NECESARIO PARA LOS LOGS
+import android.util.Log
 import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
@@ -64,8 +64,9 @@ class MainActivity : AppCompatActivity() {
         btnIniciarSesion.isEnabled = false
 
         val requestBody = LoginRequestBody(username = username, password = password)
+        val coroutineScope = CoroutineScope(Dispatchers.IO)
 
-        CoroutineScope(Dispatchers.IO).launch {
+        coroutineScope.launch {
             try {
                 val response = RetrofitClient.instance.loginUser(requestBody)
 
@@ -77,22 +78,48 @@ class MainActivity : AppCompatActivity() {
                         if (tokenResponse != null) {
                             val accessToken = tokenResponse.accessToken
 
-                            // ----------------------------------------------------------
-                            // LOGS SOLICITADOS
-                            // ----------------------------------------------------------
-                            Log.d("LOGIN_DEBUG", "¡Inicio de sesión exitoso!")
-                            Log.d("LOGIN_DEBUG", "Token recibido: $accessToken")
-                            // ----------------------------------------------------------
-
-                            // Guardar token
+                            // 1. Guardar Token inmediatamente
                             val prefs = getSharedPreferences("markettec_prefs", MODE_PRIVATE)
                             prefs.edit().putString("access_token", accessToken).apply()
 
-                            Toast.makeText(this@MainActivity, "¡Inicio de sesión exitoso!", Toast.LENGTH_SHORT).show()
+                            // 2. HACEMOS LLAMADA ADICIONAL PARA OBTENER EL NOMBRE DE PILA (FirstName)
+                            // Ejecutamos el perfil fetch en una nueva corrutina o la misma
+                            coroutineScope.launch(Dispatchers.IO) {
+                                try {
+                                    val profileResponse = RetrofitClient.instance.getMyProfile()
 
-                            // Ir al Home
-                            startActivity(Intent(this@MainActivity, HomeActivity::class.java))
-                            finish()
+                                    withContext(Dispatchers.Main) {
+                                        if (profileResponse.isSuccessful) {
+                                            val profile = profileResponse.body()
+                                            profile?.let { userProfile ->
+                                                // 3. GUARDAMOS EL NOMBRE Y ID ÚNICO DEL VENDEDOR
+                                                prefs.edit().apply {
+                                                    // Guardamos el ID único (seguro para el futuro)
+                                                    putInt("current_user_id", userProfile.id)
+                                                    // Guardamos el nombre de pila para el filtro visual en Publicaciones
+                                                    putString("current_user_first_name", userProfile.firstName)
+                                                    apply()
+                                                }
+
+                                                Toast.makeText(this@MainActivity, "Inicio de sesión exitoso!", Toast.LENGTH_SHORT).show()
+                                                startActivity(Intent(this@MainActivity, HomeActivity::class.java))
+                                                finish()
+
+                                            } ?: throw Exception("Datos de perfil vacíos.")
+                                        } else {
+                                            // Si falla el perfil (ej. 404), limpiamos el token y avisamos
+                                            prefs.edit().clear().apply()
+                                            Toast.makeText(this@MainActivity, "Fallo al obtener datos de perfil. Reintenta.", Toast.LENGTH_LONG).show()
+                                        }
+                                    }
+                                } catch (e: Exception) {
+                                    withContext(Dispatchers.Main) {
+                                        Log.e("LOGIN_PROFILE", "Error de red al obtener perfil.", e)
+                                        Toast.makeText(this@MainActivity, "Error de red al obtener perfil.", Toast.LENGTH_LONG).show()
+                                    }
+                                }
+                            }
+
                         }
                     } else {
                         handleLoginApiError(response.errorBody()?.string(), response.code())
@@ -101,7 +128,7 @@ class MainActivity : AppCompatActivity() {
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
                     btnIniciarSesion.isEnabled = true
-                    Log.e("LOGIN_ERROR", "Error de conexión: ${e.message}") // También agregué un log de error por si acaso
+                    Log.e("LOGIN_ERROR", "Error de conexión: ${e.message}")
                     Toast.makeText(this@MainActivity, "Error de red: ${e.message}", Toast.LENGTH_LONG).show()
                 }
             }
