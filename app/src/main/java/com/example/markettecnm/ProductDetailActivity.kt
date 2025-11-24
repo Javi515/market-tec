@@ -41,6 +41,7 @@ class ProductDetailActivity : AppCompatActivity() {
     private lateinit var ratingBarInput: RatingBar
     private lateinit var btnSubmitReview: Button
 
+    // Obtener el nombre del vendedor logueado
     private val currentUserName: String by lazy {
         getSharedPreferences("markettec_prefs", MODE_PRIVATE).getString("current_user_first_name", "Usuario") ?: "Usuario"
     }
@@ -94,7 +95,6 @@ class ProductDetailActivity : AppCompatActivity() {
 
         btnSubmitReview.setOnClickListener { submitReview() }
 
-        // Bloquear rating en mínimo 1 estrella
         ratingBarInput.setOnRatingBarChangeListener { ratingBar, rating, _ ->
             if (rating < 1.0f) {
                 ratingBar.rating = 1.0f
@@ -218,10 +218,16 @@ class ProductDetailActivity : AppCompatActivity() {
             Toast.makeText(this, "Escribe un comentario", Toast.LENGTH_SHORT).show()
             return
         }
-        // Validación extra aunque tengamos el listener
         if (rating == 0) {
             Toast.makeText(this, "Selecciona las estrellas (Mínimo 1)", Toast.LENGTH_SHORT).show()
             return
+        }
+
+        // 1. Verificar si soy el vendedor antes de enviar
+        val isMyProduct = product.vendor?.firstName == currentUserName
+        if (isMyProduct) {
+            Toast.makeText(this, "Los vendedores no pueden comentar sus propios productos.", Toast.LENGTH_LONG).show()
+            return // 🛑 Detiene la ejecución aquí
         }
 
         val request = CreateReviewRequest(
@@ -235,15 +241,20 @@ class ProductDetailActivity : AppCompatActivity() {
 
         lifecycleScope.launch {
             try {
-                val response = RetrofitClient.instance.postReview(request)
-                if (response.isSuccessful) {
-                    Toast.makeText(this@ProductDetailActivity, "¡Reseña enviada!", Toast.LENGTH_LONG).show()
-                    etComment.text?.clear()
-                    // Resetear a 1 estrella en lugar de 0
-                    ratingBarInput.rating = 1f
-                    loadReviews(product.id)
-                } else {
-                    Toast.makeText(this@ProductDetailActivity, "Error al enviar", Toast.LENGTH_SHORT).show()
+                val response = withContext(Dispatchers.IO) {
+                    RetrofitClient.instance.postReview(request)
+                }
+
+                withContext(Dispatchers.Main) {
+                    if (response.isSuccessful) {
+                        Toast.makeText(this@ProductDetailActivity, "¡Reseña enviada!", Toast.LENGTH_LONG).show()
+                        etComment.text?.clear()
+                        ratingBarInput.rating = 1f
+                        loadReviews(product.id)
+                    } else {
+                        // Mensaje genérico de error de API
+                        Toast.makeText(this@ProductDetailActivity, "Error al enviar [API].", Toast.LENGTH_SHORT).show()
+                    }
                 }
             } catch (e: Exception) {
                 Toast.makeText(this@ProductDetailActivity, "Sin conexión", Toast.LENGTH_SHORT).show()
@@ -288,11 +299,17 @@ class ProductDetailActivity : AppCompatActivity() {
     }
 
     private fun updateReview(reviewId: Int, rating: Int, comment: String) {
+        // 2. Verificar si soy el vendedor antes de enviar
+        val isMyProduct = product.vendor?.firstName == currentUserName
+        if (isMyProduct) {
+            Toast.makeText(this, "Los vendedores no pueden modificar sus propios productos.", Toast.LENGTH_LONG).show()
+            return // 🛑 Detiene la ejecución aquí
+        }
+
         lifecycleScope.launch {
             try {
-                // 🛑 Mover la lógica pesada a IO
+                // Mover la lógica pesada a IO
                 val response = withContext(Dispatchers.IO) {
-                    // 🛠️ CORRECCIÓN CLAVE: Pasamos todos los campos requeridos por el backend
                     val request = UpdateReviewRequest(
                         id = reviewId,
                         product = product.id,
@@ -302,21 +319,17 @@ class ProductDetailActivity : AppCompatActivity() {
                     RetrofitClient.instance.updateReview(reviewId, request)
                 }
 
-                // Volver al hilo principal para UI y chequeo
                 withContext(Dispatchers.Main) {
                     if (response.isSuccessful) {
                         Toast.makeText(this@ProductDetailActivity, "Reseña actualizada ⭐", Toast.LENGTH_SHORT).show()
                         loadReviews(product.id)
                     } else {
-                        // 🛠️ AGREGAMOS LOGGING
-                        val errorBody = response.errorBody()?.string()
-                        Log.e("REVIEW_UPDATE_API", "FALLO: Código ${response.code()} | Body: $errorBody")
-
-                        Toast.makeText(this@ProductDetailActivity, "Error ${response.code()} al actualizar (Ver Logcat).", Toast.LENGTH_SHORT).show()
+                        // Logueamos el error de API
+                        Log.e("REVIEW_UPDATE_API", "FALLO: Código ${response.code()}")
+                        Toast.makeText(this@ProductDetailActivity, "Error al actualizar [API].", Toast.LENGTH_SHORT).show()
                     }
                 }
             } catch (e: Exception) {
-                // Logueamos el error de red
                 Log.e("REVIEW_UPDATE_NET", "Error de red: ${e.message}")
                 Toast.makeText(this@ProductDetailActivity, "Sin conexión o error de red.", Toast.LENGTH_SHORT).show()
             }
@@ -336,8 +349,7 @@ class ProductDetailActivity : AppCompatActivity() {
                             loadReviews(product.id)
                         } else {
                             // Logueamos el error de eliminación también
-                            val errorBody = response.errorBody()?.string()
-                            Log.e("REVIEW_DELETE_API", "FALLO: Código ${response.code()} | Body: $errorBody")
+                            Log.e("REVIEW_DELETE_API", "FALLO: Código ${response.code()}")
                             Toast.makeText(this@ProductDetailActivity, "Error al eliminar.", Toast.LENGTH_SHORT).show()
                         }
                     } catch (e: Exception) {
