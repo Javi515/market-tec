@@ -8,6 +8,7 @@ import retrofit2.http.*
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
 import okhttp3.OkHttpClient
+import java.util.concurrent.TimeUnit // 🛠️ IMPORT NECESARIO
 
 const val BASE_URL = "http://172.200.235.24/"
 
@@ -21,10 +22,9 @@ interface ApiService {
     @GET("api/products/{id}/")
     suspend fun getProductDetail(@Path("id") productId: Int): Response<ProductModel>
 
-    // 💡 CORRECCIÓN: Cambiamos el parámetro de búsqueda de "search" a "q"
+    // BÚSQUEDA
     @GET("api/products/")
     suspend fun searchProducts(@Query("q") query: String): Response<List<ProductModel>>
-    // Esto genera una URL como: http://.../api/products/?q=Lavadora
 
     @GET("api/categories/")
     suspend fun getCategories(): Response<List<CategoryModel>>
@@ -88,6 +88,10 @@ interface ApiService {
 object RetrofitClient {
 
     private val okHttpClient: OkHttpClient = OkHttpClient.Builder()
+        // 🛠️ CORRECCIÓN CLAVE: Aumentar el tiempo de espera a 30 segundos
+        .connectTimeout(30, TimeUnit.SECONDS)
+        .readTimeout(30, TimeUnit.SECONDS)
+        .writeTimeout(30, TimeUnit.SECONDS)
         .addInterceptor(AuthInterceptor())
         .build()
 

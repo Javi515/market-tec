@@ -47,6 +47,11 @@
             android:parentActivityName=".HomeActivity" />
 
         <activity
+            android:name=".ResultadoCategoriaActivity"
+            android:exported="false"
+            android:parentActivityName=".HomeActivity" />
+
+        <activity
             android:name=".MisComprasActivity"
             android:exported="false" />
 

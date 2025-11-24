@@ -2,8 +2,8 @@ package com.example.markettecnm
 
 import android.content.Intent
 import android.os.Bundle
-import android.os.Handler // <-- IMPORTANTE
-import android.os.Looper // <-- IMPORTANTE
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
@@ -11,7 +11,7 @@ import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.viewpager2.widget.ViewPager2 // Necesario para el carrusel
+import androidx.viewpager2.widget.ViewPager2
 import com.example.markettecnm.adapters.BannerAdapter
 import com.example.markettecnm.adapters.CategoryAdapter
 import com.example.markettecnm.adapters.ProductAdapter
@@ -33,20 +33,16 @@ class HomeFragment : Fragment() {
     private lateinit var productAdapter: ProductAdapter
     private lateinit var bannerAdapter: BannerAdapter
 
-    // Variables para la rotación automática
     private val handler = Handler(Looper.getMainLooper())
     private val delay: Long = 2000 // 2 segundos
 
-    // Runnable que se ejecutará cada 2 segundos
     private val runnable = object : Runnable {
         override fun run() {
-            // Lógica para avanzar la página
             if (bannerAdapter.itemCount > 0) {
                 val current = binding.vpTendenciaCarousel.currentItem
                 val next = if (current == bannerAdapter.itemCount - 1) 0 else current + 1
                 binding.vpTendenciaCarousel.setCurrentItem(next, true)
             }
-            // Programar la próxima ejecución
             handler.postDelayed(this, delay)
         }
     }
@@ -65,15 +61,13 @@ class HomeFragment : Fragment() {
         fetchData()
     }
 
-    // 🛑 CICLO DE VIDA: Iniciar la rotación al reanudar el fragmento
     override fun onResume() {
         super.onResume()
-        if (bannerAdapter.itemCount > 1) {
+        if (::bannerAdapter.isInitialized && bannerAdapter.itemCount > 1) {
             handler.postDelayed(runnable, delay)
         }
     }
 
-    // 🛑 CICLO DE VIDA: Detener la rotación al pausar el fragmento
     override fun onPause() {
         super.onPause()
         handler.removeCallbacks(runnable)
@@ -88,14 +82,11 @@ class HomeFragment : Fragment() {
         }
         binding.vpTendenciaCarousel.adapter = bannerAdapter
 
-        // Listener para reiniciar la rotación si el usuario desliza
         binding.vpTendenciaCarousel.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
             override fun onPageScrollStateChanged(state: Int) {
                 if (state == ViewPager2.SCROLL_STATE_DRAGGING) {
-                    // Si el usuario toca, detenemos el auto-scroll
                     handler.removeCallbacks(runnable)
                 } else if (state == ViewPager2.SCROLL_STATE_IDLE) {
-                    // Si termina de deslizar, reiniciamos el auto-scroll
                     handler.removeCallbacks(runnable)
                     handler.postDelayed(runnable, delay)
                 }
@@ -105,7 +96,7 @@ class HomeFragment : Fragment() {
 
         // 2. CATEGORÍAS
         categoryAdapter = CategoryAdapter(emptyList()) { category ->
-            Log.d("HomeFragment", "Click en categoría: ${category.name}")
+            openCategoryResults(category.name)
         }
         binding.rvCategories.apply {
             layoutManager = LinearLayoutManager(context, LinearLayoutManager.HORIZONTAL, false)
@@ -125,15 +116,17 @@ class HomeFragment : Fragment() {
         }
     }
 
+    private fun openCategoryResults(categoryName: String) {
+        val intent = Intent(requireContext(), ResultadoCategoriaActivity::class.java).apply {
+            putExtra("category_name", categoryName)
+        }
+        startActivity(intent)
+    }
+
+
     private fun fetchData() {
         lifecycleScope.launch(Dispatchers.IO) {
             try {
-                // ... (Carga de datos) ...
-                // Nota: Tu código de carga de productos y reviews está aquí.
-                // Lo mantengo sin modificar para no romper la lógica de API.
-
-                // ... (El bloque con deferredCategories, deferredProducts, deferredReviews) ...
-
                 val deferredCategories = async { RetrofitClient.instance.getCategories() }
                 val deferredProducts = async { RetrofitClient.instance.getProducts() }
                 val deferredReviews = async { RetrofitClient.instance.getReviews() }
@@ -145,6 +138,16 @@ class HomeFragment : Fragment() {
                 val resFavorites = deferredFavorites.await()
 
                 withContext(Dispatchers.Main) {
+                    val allProducts = resProducts.body() ?: emptyList()
+                    val allReviews = resReviews.body() ?: emptyList()
+
+                    // 🛑 PASO 1: Calcular el promedio de rating UNA SOLA VEZ
+                    val reviewsByProduct = allReviews.groupBy { it.product }
+                    val globalProductRatings = reviewsByProduct.mapValues { (_, reviewList) ->
+                        reviewList.map { it.rating }.average()
+                    }
+
+
                     // A. Categorías
                     if (resCategories.isSuccessful) {
                         categoryAdapter.updateCategories(resCategories.body() ?: emptyList())
@@ -158,21 +161,25 @@ class HomeFragment : Fragment() {
                     }
                     productAdapter.preloadFavorites(favoriteIds)
 
-                    // C. Productos
-                    val allProducts = resProducts.body() ?: emptyList()
-                    if (resProducts.isSuccessful) {
-                        productAdapter.updateProducts(allProducts)
-                    }
+                    // C. LÓGICA DE FILTRADO Y ORDENAMIENTO
+                    if (resProducts.isSuccessful && resReviews.isSuccessful) {
 
-                    // D. Tendencias
-                    if (resReviews.isSuccessful && resProducts.isSuccessful) {
-                        val allReviews = resReviews.body() ?: emptyList()
-                        calculateTrends(allProducts, allReviews)
+                        // 2. Distribuir el mapa de ratings a AMBOS adaptadores
+                        productAdapter.updateRatings(globalProductRatings)
+                        bannerAdapter.updateRatings(globalProductRatings) // Asignamos ratings al carrusel
 
-                        // 🛑 INICIAR ROTACIÓN SOLO DESPUÉS DE CARGAR DATOS
+                        // 3. Tendencias (Carrusel)
+                        calculateTrends(allProducts, globalProductRatings)
                         if (bannerAdapter.itemCount > 1) {
                             handler.postDelayed(runnable, delay)
                         }
+
+                        // 4. PRODUCTOS RECOMENDADOS (Lista vertical)
+                        val recommendedList = filterAndSortRecommended(allProducts, globalProductRatings)
+                        productAdapter.updateProducts(recommendedList)
+                    } else if (resProducts.isSuccessful) {
+                        // Si no hay reviews, al menos mostramos la lista completa
+                        productAdapter.updateProducts(allProducts)
                     }
                 }
             } catch (e: Exception) {
@@ -181,16 +188,36 @@ class HomeFragment : Fragment() {
         }
     }
 
-    private fun calculateTrends(products: List<ProductModel>, reviews: List<ReviewModel>) {
-        if (reviews.isEmpty()) return
+    // 🛑 FUNCIÓN MODIFICADA: Ahora recibe el mapa de scores ya calculado
+    private fun filterAndSortRecommended(products: List<ProductModel>, productScores: Map<Int, Double>): List<ProductModel> {
+        if (productScores.isEmpty()) return emptyList()
 
-        val reviewsByProduct = reviews.groupBy { it.product }
+        // 1. Filtrar productos con promedio menor a 4.0
+        val eligibleProductIds = productScores.filterValues { it >= 4.0 }.keys
 
-        val productRatings = reviewsByProduct.mapValues { entry ->
-            val totalStars = entry.value.sumOf { it.rating }
-            val count = entry.value.size
-            if (count > 0) totalStars.toDouble() / count else 0.0
-        }
+        if (eligibleProductIds.isEmpty()) return emptyList()
+
+        // 2. Obtener los IDs de los productos elegibles y ordenarlos por rating (de mayor a menor)
+        val sortedProductIds = productScores.entries
+            .filter { it.key in eligibleProductIds }
+            .sortedByDescending { it.value }
+            .take(10)
+            .map { it.key }
+
+        // 3. Filtrar los productos originales para obtener los objetos completos y mantener el orden
+        val recommendedProducts = products
+            .filter { it.id in sortedProductIds }
+            .sortedBy { sortedProductIds.indexOf(it.id) }
+
+        Log.d("RECOMENDACION", "Mostrando ${recommendedProducts.size} productos con >= 4.0 estrellas.")
+
+        return recommendedProducts
+    }
+
+
+    // 🛑 FUNCIÓN MODIFICADA: Ahora recibe el mapa de scores ya calculado
+    private fun calculateTrends(products: List<ProductModel>, productRatings: Map<Int, Double>) {
+        if (productRatings.isEmpty()) return
 
         val top3Ids = productRatings.entries
             .sortedByDescending { it.value }
@@ -206,7 +233,6 @@ class HomeFragment : Fragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
-        // Detener el handler para evitar crashes al salir del fragmento
         handler.removeCallbacks(runnable)
         _binding = null
     }

@@ -24,14 +24,15 @@ class ProductAdapter(
     private val onItemClick: (ProductModel) -> Unit
 ) : RecyclerView.Adapter<ProductAdapter.ProductViewHolder>() {
 
-    // Conjunto de IDs que son favoritos
     private val favoriteCache = mutableSetOf<Int>()
+    private var ratingMap: Map<Int, Double> = emptyMap()
 
     inner class ProductViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         val ivProduct: ImageView = itemView.findViewById(R.id.ivProductImage)
         val tvProductName: TextView = itemView.findViewById(R.id.tvProductName)
         val tvProductPrice: TextView = itemView.findViewById(R.id.tvProductPrice)
         val btnFavorite: ImageButton = itemView.findViewById(R.id.btnFavorite)
+        val tvProductRating: TextView = itemView.findViewById(R.id.tvProductRating)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ProductViewHolder {
@@ -43,8 +44,17 @@ class ProductAdapter(
     override fun onBindViewHolder(holder: ProductViewHolder, position: Int) {
         val product = products[position]
 
-        // 1. Determinar si es favorito según el caché local
         val isFavorite = favoriteCache.contains(product.id)
+
+        // 🛑 LÓGICA CLAVE: Mostrar el rating real del mapa
+        val averageRating = ratingMap[product.id]
+
+        if (averageRating != null && averageRating > 0) {
+            holder.tvProductRating.text = String.format("⭐ %.1f", averageRating)
+            holder.tvProductRating.visibility = View.VISIBLE
+        } else {
+            holder.tvProductRating.visibility = View.GONE
+        }
 
         holder.tvProductName.text = product.name
         holder.tvProductPrice.text = "$${product.price}"
@@ -60,26 +70,19 @@ class ProductAdapter(
             holder.ivProduct.setImageResource(android.R.drawable.ic_menu_gallery)
         }
 
-        // 2. Pintar el corazón correctamente al cargar
         updateFavoriteIcon(holder.btnFavorite, isFavorite)
 
-        // 3. LÓGICA DE CLIC (TOGGLE)
+        // LÓGICA DE CLIC (TOGGLE)
         holder.btnFavorite.setOnClickListener {
-            // Estado actual ANTES de hacer el cambio
             val wasFavorite = favoriteCache.contains(product.id)
-
-            // Estado deseado (lo opuesto al actual)
             val newStatus = !wasFavorite
 
-            // A. Cambio Visual Inmediato (Optimista)
             updateFavoriteIcon(holder.btnFavorite, newStatus)
 
-            // Animación pequeña
             holder.btnFavorite.animate().scaleX(1.2f).scaleY(1.2f).setDuration(100).withEndAction {
                 holder.btnFavorite.animate().scaleX(1f).scaleY(1f).setDuration(100).start()
             }.start()
 
-            // B. Actualizar caché local temporalmente
             if (newStatus) {
                 favoriteCache.add(product.id)
                 Toast.makeText(holder.itemView.context, "Añadido a favoritos", Toast.LENGTH_SHORT).show()
@@ -88,17 +91,13 @@ class ProductAdapter(
                 Toast.makeText(holder.itemView.context, "Eliminado de favoritos", Toast.LENGTH_SHORT).show()
             }
 
-            // C. Llamada al Servidor en segundo plano
             CoroutineScope(Dispatchers.Main).launch {
                 val success = toggleFavoriteOnServer(product.id)
 
                 if (!success) {
-                    // D. SI FALLA: Revertimos todo (Rollback)
                     Log.e("FAV_ERROR", "El servidor falló al cambiar favorito ID: ${product.id}")
-
                     if (wasFavorite) favoriteCache.add(product.id) else favoriteCache.remove(product.id)
-                    updateFavoriteIcon(holder.btnFavorite, wasFavorite) // Regresamos al icono anterior
-
+                    updateFavoriteIcon(holder.btnFavorite, wasFavorite)
                     Toast.makeText(holder.itemView.context, "Error al sincronizar favorito", Toast.LENGTH_SHORT).show()
                 } else {
                     Log.d("FAV_SUCCESS", "Favorito actualizado en servidor correctamente")
@@ -113,19 +112,26 @@ class ProductAdapter(
 
     fun updateProducts(newProducts: List<ProductModel>) {
         this.products = newProducts
-        notifyDataSetChanged()
+        notifyDataSetChanged() // La actualización principal de datos debe notificar el cambio
     }
 
     fun preloadFavorites(favoriteIds: List<Int>) {
+        // 🛠️ OPTIMIZACIÓN: Solo actualizamos la caché, no notificamos el cambio aquí.
+        // HomeFragment llamará a updateProducts() justo después, que hará el redraw.
         favoriteCache.clear()
         favoriteCache.addAll(favoriteIds)
-        notifyDataSetChanged()
+    }
+
+    // 💡 FUNCIÓN FALTANTE: Para recibir el mapa de ratings desde HomeFragment
+    fun updateRatings(newRatingMap: Map<Int, Double>) {
+        this.ratingMap = newRatingMap
+        notifyDataSetChanged() // Forzamos la actualización de las estrellas en pantalla
     }
 
     private fun updateFavoriteIcon(button: ImageButton, isFavorite: Boolean) {
         button.setImageResource(
-            if (isFavorite) R.drawable.ic_favorite // Relleno
-            else R.drawable.ic_favorite_border   // Borde
+            if (isFavorite) R.drawable.ic_favorite
+            else R.drawable.ic_favorite_border
         )
     }
 
@@ -136,7 +142,6 @@ class ProductAdapter(
             val response = RetrofitClient.instance.toggleFavorite(request)
 
             if (!response.isSuccessful) {
-                // IMPRIMIR EL ERROR EXACTO DEL SERVIDOR
                 val errorBody = response.errorBody()?.string()
                 Log.e("API_ERROR", "Código: ${response.code()} - Cuerpo: $errorBody")
             }

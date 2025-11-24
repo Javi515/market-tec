@@ -16,10 +16,15 @@ class BannerAdapter(
     private val onItemClick: (ProductModel) -> Unit
 ) : RecyclerView.Adapter<BannerAdapter.BannerViewHolder>() {
 
+    // 💡 NUEVO: Mapa para almacenar ProductID -> Average Rating
+    private var ratingMap: Map<Int, Double> = emptyMap()
+
     inner class BannerViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val ivBannerImage: ImageView = view.findViewById(R.id.ivBannerImage)
         val tvBannerTitle: TextView = view.findViewById(R.id.tvBannerTitle)
         val tvBannerPrice: TextView = view.findViewById(R.id.tvBannerPrice)
+        // 🛠️ ASUMIDO: Si tu XML tiene un TextView para el rating en el banner
+        // val tvBannerRating: TextView = view.findViewById(R.id.tvBannerRating)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): BannerViewHolder {
@@ -31,27 +36,37 @@ class BannerAdapter(
     override fun onBindViewHolder(holder: BannerViewHolder, position: Int) {
         val product = products[position]
 
-        // LOG PARA DEPURAR: Si no ves esto en el Logcat, la lista está vacía.
-        Log.d("BANNER_DEBUG", "Cargando banner: ${product.name} - Img: ${product.image}")
+        // 1. Obtener Rating y Actualizar UI
+        val averageRating = ratingMap[product.id]
+        if (averageRating != null && averageRating > 0) {
+            // Si el layout tiene tvBannerRating:
+            // holder.tvBannerRating.text = String.format("⭐ %.1f", averageRating)
+            // holder.tvBannerRating.visibility = View.VISIBLE
+
+            // Si el layout NO tiene un TextView dedicado para rating,
+            // y solo queremos mostrarlo en Logcat, ignoramos este paso visual.
+        }
+
+
+        // LOG PARA DEPURAR:
+        Log.d("BANNER_DEBUG", "Cargando banner: ${product.name} - Rating: ${averageRating ?: 0.0}")
 
         holder.tvBannerTitle.text = product.name
         holder.tvBannerPrice.text = "¡Solo $${product.price}!"
 
         val imageUrl = product.image
 
+        // Carga de imagen
         if (!imageUrl.isNullOrBlank()) {
             Glide.with(holder.itemView.context)
                 .load(imageUrl)
                 .centerCrop()
-                // Usamos ic_menu_gallery porque es gris oscuro y se nota más
                 .placeholder(android.R.drawable.ic_menu_gallery)
-                .error(android.R.drawable.stat_notify_error) // Icono rojo si falla
+                .error(android.R.drawable.stat_notify_error)
                 .into(holder.ivBannerImage)
         } else {
-            // Si no hay URL, forzamos una imagen visible
             Log.d("BANNER_DEBUG", "Producto sin imagen, usando default")
             holder.ivBannerImage.setImageResource(android.R.drawable.ic_menu_gallery)
-            // Opcional: Cambiar el color de fondo para que se note que hay algo
             holder.ivBannerImage.setBackgroundColor(android.graphics.Color.LTGRAY)
         }
 
@@ -69,5 +84,12 @@ class BannerAdapter(
         Log.d("BANNER_DEBUG", "Actualizando banners con ${newProducts.size} productos")
         this.products = newProducts
         notifyDataSetChanged()
+    }
+
+    // 🛑 FUNCIÓN FALTANTE: Permite a HomeFragment enviar el mapa de calificaciones
+    fun updateRatings(newRatingMap: Map<Int, Double>) {
+        this.ratingMap = newRatingMap
+        // Nota: NO llamamos notifyDataSetChanged() aquí para evitar doble redraw.
+        // Lo hará updateBanners() justo después.
     }
 }

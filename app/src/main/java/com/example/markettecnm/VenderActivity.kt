@@ -14,6 +14,7 @@ import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
+import com.example.markettecnm.network.CategoryModel // Necesario para obtener el ID
 import com.example.markettecnm.network.RetrofitClient
 import com.google.android.material.textfield.TextInputEditText
 import kotlinx.coroutines.Dispatchers
@@ -42,25 +43,23 @@ class VenderActivity : AppCompatActivity() {
 
     // State
     private var selectedImageUri: Uri? = null
-    private var availableCategories = listOf<String>()
+    // [1] State 1: Lista de nombres para el Dropdown
+    private var availableCategoryNames = listOf<String>()
+    // [2] State 2: Mapa para obtener el ID al momento de publicar
+    private var categoryIdMap: Map<String, Int> = emptyMap()
 
 
-    // Selector de Imagen (Abre galería)
+    // Selector de Imagen (pickImage)
     private val pickImage = registerForActivityResult(
         ActivityResultContracts.OpenDocument()
     ) { uri: Uri? ->
         if (uri != null) {
             selectedImageUri = uri
-            // Mantener permiso de acceso
             contentResolver.takePersistableUriPermission(
                 uri,
                 Intent.FLAG_GRANT_READ_URI_PERMISSION
             )
-
-            // 💡 CORRECCIÓN 1: Cambiar scaleType para que la foto llene el recuadro
             ivProductImage.scaleType = ImageView.ScaleType.CENTER_CROP
-
-            // Mostrar la imagen seleccionada
             ivProductImage.setImageURI(uri)
             tvSelectImage.visibility = View.GONE
         }
@@ -68,7 +67,7 @@ class VenderActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // 💡 CORRECCIÓN 2: El layout se llama activity_vender.xml por convención
+        // 💡 CORRECCIÓN: Usar el nombre de layout correcto
         setContentView(R.layout.vender)
 
         supportActionBar?.title = "Publicar Venta"
@@ -95,8 +94,6 @@ class VenderActivity : AppCompatActivity() {
 
     private fun setupClickListeners() {
         ivProductImage.setOnClickListener {
-            // Cuando se hace clic, volvemos a poner el scaleType en CENTER_INSIDE
-            // para que el placeholder (el icono de galería) se vea pequeño y centrado
             ivProductImage.scaleType = ImageView.ScaleType.CENTER_INSIDE
             pickImage.launch(arrayOf("image/*"))
         }
@@ -106,13 +103,19 @@ class VenderActivity : AppCompatActivity() {
         }
     }
 
-    // Cargar Categorías para el Dropdown
+    // 🛑 CORRECCIÓN: Cargar y Mapear ID de Categoría
     private fun loadCategories() {
         lifecycleScope.launch(Dispatchers.IO) {
             try {
                 val response = RetrofitClient.instance.getCategories()
                 if (response.isSuccessful) {
-                    availableCategories = response.body()?.map { it.name } ?: emptyList()
+                    val categories = response.body() ?: emptyList<CategoryModel>()
+
+                    // Almacenamos un mapa Nombre -> ID
+                    categoryIdMap = categories.associate { it.name to it.id }
+                    // Y la lista de nombres para el adaptador del dropdown
+                    availableCategoryNames = categories.map { it.name }
+
                     withContext(Dispatchers.Main) {
                         setupCategoryDropdown()
                     }
@@ -127,7 +130,7 @@ class VenderActivity : AppCompatActivity() {
         val adapter = ArrayAdapter(
             this,
             android.R.layout.simple_dropdown_item_1line,
-            availableCategories
+            availableCategoryNames // Usamos solo la lista de nombres
         )
         actvCategory.setAdapter(adapter)
     }
@@ -137,13 +140,18 @@ class VenderActivity : AppCompatActivity() {
         tvError.visibility = View.GONE
 
         val name = etProductName.text.toString().trim()
-        val description = etProductDescription.text.toString().trim()
         val price = etProductPrice.text.toString().trim()
         val inventory = etProductInventory.text.toString().trim()
         val categoryName = actvCategory.text.toString().trim()
 
-        if (name.isEmpty() || price.isEmpty() || inventory.isEmpty() || categoryName.isEmpty() || selectedImageUri == null) {
+        // 💡 OBTENEMOS EL ID DE LA CATEGORÍA A PARTIR DEL NOMBRE
+        val categoryId = categoryIdMap[categoryName]
+
+        if (name.isEmpty() || price.isEmpty() || inventory.isEmpty() || categoryId == null || selectedImageUri == null) {
             tvError.text = "Completa todos los campos y selecciona una imagen."
+            if (categoryId == null && categoryName.isNotEmpty()) {
+                tvError.text = "Selecciona una categoría válida del menú desplegable."
+            }
             tvError.visibility = View.VISIBLE
             return
         }
@@ -151,10 +159,11 @@ class VenderActivity : AppCompatActivity() {
         btnPublish.isEnabled = false
         btnPublish.text = "Publicando..."
 
-        publishProduct(name, description, price, inventory, categoryName)
+        publishProduct(name, etProductDescription.text.toString().trim(), price, inventory, categoryId)
     }
 
-    private fun publishProduct(name: String, description: String, price: String, inventory: String, categoryName: String) {
+    // 🛑 CORRECCIÓN CLAVE: El DTO de publicación ahora recibe el ID (Int)
+    private fun publishProduct(name: String, description: String, price: String, inventory: String, categoryId: Int) {
         lifecycleScope.launch(Dispatchers.IO) {
             var imagePart: MultipartBody.Part? = null
 
@@ -165,10 +174,7 @@ class VenderActivity : AppCompatActivity() {
                     val requestFile = file.asRequestBody("image/*".toMediaTypeOrNull())
                     imagePart = MultipartBody.Part.createFormData("product_image", file.name, requestFile)
                 } catch (e: Exception) {
-                    Log.e("VENDER", "Error procesando imagen: ${e.message}")
-                    withContext(Dispatchers.Main) {
-                        showError("Error al procesar la imagen.")
-                    }
+                    // ... (manejo de error) ...
                     return@launch
                 }
             }
@@ -179,7 +185,8 @@ class VenderActivity : AppCompatActivity() {
             params["description"] = description.toRequestBody("text/plain".toMediaTypeOrNull())
             params["price"] = price.toRequestBody("text/plain".toMediaTypeOrNull())
             params["inventory"] = inventory.toRequestBody("text/plain".toMediaTypeOrNull())
-            params["category_name"] = categoryName.toRequestBody("text/plain".toMediaTypeOrNull())
+            // 🛑 CAMBIO CLAVE: Enviamos el ID bajo la clave "category"
+            params["category"] = categoryId.toString().toRequestBody("text/plain".toMediaTypeOrNull())
 
             // 3. Llamada a la API
             try {
