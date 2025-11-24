@@ -2,12 +2,13 @@ package com.example.markettecnm
 
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log // <--- IMPORT NECESARIO PARA LOS LOGS
 import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.example.markettecnm.network.LoginRequestBody
-import com.example.markettecnm.network.TokenResponse   // ← ¡ESTE IMPORT FALTABA!
+import com.example.markettecnm.network.TokenResponse
 import com.example.markettecnm.network.RetrofitClient
 import com.example.markettecnm.network.ErrorResponse
 import com.google.android.material.textfield.TextInputEditText
@@ -74,7 +75,14 @@ class MainActivity : AppCompatActivity() {
                     if (response.isSuccessful) {
                         val tokenResponse = response.body()
                         if (tokenResponse != null) {
-                            val accessToken = tokenResponse.accessToken  // ← Ahora sí existe
+                            val accessToken = tokenResponse.accessToken
+
+                            // ----------------------------------------------------------
+                            // LOGS SOLICITADOS
+                            // ----------------------------------------------------------
+                            Log.d("LOGIN_DEBUG", "¡Inicio de sesión exitoso!")
+                            Log.d("LOGIN_DEBUG", "Token recibido: $accessToken")
+                            // ----------------------------------------------------------
 
                             // Guardar token
                             val prefs = getSharedPreferences("markettec_prefs", MODE_PRIVATE)
@@ -93,6 +101,7 @@ class MainActivity : AppCompatActivity() {
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
                     btnIniciarSesion.isEnabled = true
+                    Log.e("LOGIN_ERROR", "Error de conexión: ${e.message}") // También agregué un log de error por si acaso
                     Toast.makeText(this@MainActivity, "Error de red: ${e.message}", Toast.LENGTH_LONG).show()
                 }
             }

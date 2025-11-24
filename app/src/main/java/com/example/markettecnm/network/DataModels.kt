@@ -24,11 +24,6 @@ data class VendorModel(
 
 
 
-data class CategoryModel(
-    val id: Int,
-    val name: String,
-    val description: String
-)
 
 data class RegistrationRequestBody(
     val first_name: String,

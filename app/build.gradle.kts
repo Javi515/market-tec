@@ -50,6 +50,7 @@ dependencies {
     implementation(libs.androidx.activity)
     implementation(libs.androidx.constraintlayout)
     implementation(libs.play.services.analytics.impl)
+    implementation("com.github.bumptech.glide:glide:4.16.0")
 
     // --- RETROFIT, OKHTTP y GSON ---
     implementation("com.squareup.retrofit2:retrofit:2.9.0")
