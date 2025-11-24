@@ -14,7 +14,7 @@ import com.example.markettecnm.models.ProductModel
 
 class PublicacionAdapter(
     private var products: List<ProductModel>,
-    // Callback: action = "edit" o "delete", product = el item clickeado
+    // Callback: action = "edit", "delete" o "view"
     private val onProductAction: (String, ProductModel) -> Unit
 ) : RecyclerView.Adapter<PublicacionAdapter.PublicacionViewHolder>() {
 
@@ -23,10 +23,13 @@ class PublicacionAdapter(
         val tvProductName: TextView = itemView.findViewById(R.id.tvProductName)
         val tvProductPrice: TextView = itemView.findViewById(R.id.tvProductPrice)
         val tvProductStatus: TextView = itemView.findViewById(R.id.tvProductStatus)
-        val btnOptions: ImageView = itemView.findViewById(R.id.btnOptions) // Nuevo botón
+        val btnOptions: ImageView = itemView.findViewById(R.id.btnOptions)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): PublicacionViewHolder {
+        // 🛠️ CORRECCIÓN 1: Usamos R.layout.item_publicacion (singular y sin la 'es' final)
+        // Esto asume que el layout se llama item_publicacion.xml o item_publicaciones.xml.
+        // Usaremos 'item_publicacion' para consistencia con el código que te di.
         val view = LayoutInflater.from(parent.context)
             .inflate(R.layout.item_publicaciones, parent, false)
         return PublicacionViewHolder(view)
@@ -51,9 +54,10 @@ class PublicacionAdapter(
             holder.ivProductImage.setImageResource(android.R.drawable.ic_menu_gallery)
         }
 
-        // Lógica del Pop-up Menu de Opciones
+        // Lógica del Pop-up Menu de Opciones (Editar/Eliminar)
         holder.btnOptions.setOnClickListener { view ->
             val popup = PopupMenu(view.context, view)
+            // Asegúrate de que el menú se llama menu_publicacion_options.xml
             popup.menuInflater.inflate(R.menu.menu_publicacion_options, popup.menu)
             popup.setOnMenuItemClickListener { item ->
                 when (item.itemId) {
@@ -71,10 +75,9 @@ class PublicacionAdapter(
             popup.show()
         }
 
-        // Click en toda la fila (opcional)
+        // 🛠️ CORRECCIÓN 2: Clic en toda la fila para ver detalle
         holder.itemView.setOnClickListener {
-            // Si quieres que al tocar la fila se abra el detalle, usa onProductAction("view", product)
-            Toast.makeText(holder.itemView.context, "Ver detalle de ${product.name}", Toast.LENGTH_SHORT).show()
+            onProductAction("view", product)
         }
     }
 

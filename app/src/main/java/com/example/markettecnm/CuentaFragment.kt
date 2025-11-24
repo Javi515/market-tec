@@ -12,29 +12,25 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
-import com.google.android.material.floatingactionbutton.FloatingActionButton // <--- IMPORTACIÓN CLAVE
+import com.google.android.material.floatingactionbutton.FloatingActionButton
 
 class CuentaFragment : Fragment() {
 
     private lateinit var imgAvatar: ImageView
-    // FIX: Cambiamos de Button a FloatingActionButton (FAB)
     private lateinit var fabChangePhoto: FloatingActionButton
 
     private lateinit var textNombre: TextView
     private lateinit var textCorreo: TextView
     private lateinit var btnEditarPerfil: Button
 
-    // Preferencias de Sesión (token, nombre, id)
     private val sessionPrefs by lazy {
         requireContext().getSharedPreferences("markettec_prefs", Context.MODE_PRIVATE)
     }
 
-    // Preferencias locales (avatar)
     private val avatarPrefs by lazy {
         requireContext().getSharedPreferences("account_prefs", Context.MODE_PRIVATE)
     }
 
-    // Abrir galería para seleccionar imagen (pickImage está bien)
     private val pickImage = registerForActivityResult(
         ActivityResultContracts.OpenDocument()
     ) { uri: Uri? ->
@@ -57,7 +53,6 @@ class CuentaFragment : Fragment() {
 
         // 1. Inicialización de Vistas
         imgAvatar = view.findViewById(R.id.imgAvatar)
-        // FIX: Inicializar el FAB con el ID correcto
         fabChangePhoto = view.findViewById(R.id.fabChangePhoto)
 
         textNombre = view.findViewById(R.id.textNombre)
@@ -79,12 +74,12 @@ class CuentaFragment : Fragment() {
 
         // 4. Listeners
 
-        // FIX: Asignar el listener al FAB
         fabChangePhoto.setOnClickListener {
             pickImage.launch(arrayOf("image/*"))
         }
 
         btnEditarPerfil.setOnClickListener {
+            // FIX: Usamos el nombre simple para evitar el error de ruta si el import falla.
             val intent = Intent(requireContext(), EditarPerfilActivity::class.java)
             startActivity(intent)
         }
@@ -92,6 +87,11 @@ class CuentaFragment : Fragment() {
         // ======= Apartados interactivos de la lista =======
         view.findViewById<View>(R.id.rowCompras).setOnClickListener {
             startActivity(Intent(requireContext(), MisComprasActivity::class.java))
+        }
+
+        // 🛑 CORRECCIÓN CLAVE: AGREGAR EL LISTENER DE MIS VENTAS
+        view.findViewById<View>(R.id.rowMisVentas).setOnClickListener {
+            startActivity(Intent(requireContext(), MisVentasActivity::class.java))
         }
 
         view.findViewById<View>(R.id.rowChats).setOnClickListener {

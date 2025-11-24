@@ -55,7 +55,7 @@
                     app:fabSize="mini"
                     app:srcCompat="@drawable/ic_camera_alt"
                     app:tint="#444444"
-                    app:backgroundTint="@android:color/darker_gray"
+                    app:backgroundTint="@android:color/white"
                     android:layout_marginEnd="-8dp"
                     android:layout_marginBottom="-8dp"
                     android:contentDescription="Cambiar foto de perfil" />
@@ -90,7 +90,7 @@
             android:text="Editar Perfil"
             android:textSize="16sp"
             android:textStyle="bold"
-            android:backgroundTint="#FF9800"
+            android:backgroundTint="#0000FF"
             app:cornerRadius="8dp" />
 
         <View
@@ -114,6 +114,23 @@
             android:clickable="true"
             android:focusable="true"
             android:foreground="?attr/selectableItemBackground"/>
+
+        <TextView
+            android:id="@+id/rowMisVentas"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Mis ventas"
+            android:textColor="#212121"
+            android:textSize="16sp"
+            android:paddingVertical="4dp"
+            android:drawableStart="@drawable/ic_shopping_cart"
+            android:drawableTint="#444444"
+            android:drawablePadding="14dp"
+            android:gravity="center_vertical"
+            android:clickable="true"
+            android:focusable="true"
+            android:foreground="?attr/selectableItemBackground"/>
+
 
         <TextView
             android:id="@+id/rowChats" android:layout_width="match_parent"

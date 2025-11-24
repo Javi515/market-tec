@@ -56,8 +56,10 @@ class PublicacionesActivity : AppCompatActivity() {
     }
 
     private fun setupRecyclerView() {
+        // CORRECCIÓN CLAVE: Agregamos el manejo de la acción "view"
         publicacionAdapter = PublicacionAdapter(emptyList()) { action, product ->
             when (action) {
+                "view" -> handleViewProductDetail(product) // 🛑 NUEVO: Manejar el clic de la fila
                 "edit" -> handleEditProduct(product)
                 "delete" -> handleDeleteProduct(product)
             }
@@ -66,10 +68,18 @@ class PublicacionesActivity : AppCompatActivity() {
         rvPublicaciones.adapter = publicacionAdapter
     }
 
+    // 🛑 FUNCIÓN NUEVA: Abre la pantalla de Detalle del Producto
+    private fun handleViewProductDetail(product: ProductModel) {
+        val intent = Intent(this, ProductDetailActivity::class.java).apply {
+            putExtra("product_id", product.id)
+        }
+        startActivity(intent)
+    }
+
     // --- LÓGICA DE MANEJO DE ACCIONES ---
 
     private fun handleEditProduct(product: ProductModel) {
-        // CORRECCIÓN 1: Llamar a la Activity de MODIFICACIÓN
+        // Al darle editar, abrimos la Activity de modificación
         Toast.makeText(this, "Abriendo edición de: ${product.name}", Toast.LENGTH_SHORT).show()
         val intent = Intent(this, ModificarProductoActivity::class.java).apply {
             putExtra("PRODUCT_TO_EDIT_ID", product.id)
@@ -91,7 +101,7 @@ class PublicacionesActivity : AppCompatActivity() {
     private fun deleteProductOnServer(productId: Int) {
         lifecycleScope.launch(Dispatchers.IO) {
             try {
-                // CORRECCIÓN 2: Llama a deleteProduct (Función para eliminar productos)
+                // Llama a deleteProduct
                 val response = RetrofitClient.instance.deleteProduct(productId)
 
                 withContext(Dispatchers.Main) {

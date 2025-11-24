@@ -56,7 +56,7 @@
                 android:layout_alignParentEnd="true"
                 android:layout_alignParentTop="true"
                 android:background="?attr/selectableItemBackgroundBorderless"
-                android:src="@android:drawable/ic_menu_more"
+                app:srcCompat="@drawable/ic_more_vertical"
                 android:contentDescription="Opciones de producto"
                 app:tint="#666666" />
 

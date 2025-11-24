@@ -60,7 +60,7 @@ class ComprasAdapter(
             tvCantidad.text = "Cantidad: $quantity"
 
             // Usamos un valor fijo, ya que el estado no está en el modelo
-            tvEstado.text = "Estado: Entregado"
+            tvEstado.text = "Estado: En camino"
 
             btnContactar.setOnClickListener {
                 onContactClick(product)
