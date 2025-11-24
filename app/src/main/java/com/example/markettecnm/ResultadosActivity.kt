@@ -16,7 +16,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-// 👇 CORRECCIÓN 1: Usamos el modelo correcto (models)
 import com.example.markettecnm.models.ProductModel
 
 class ResultadosActivity : AppCompatActivity() {
@@ -54,36 +53,37 @@ class ResultadosActivity : AppCompatActivity() {
     }
 
     private fun searchProducts(query: String) {
+        // CORRECCIÓN CLAVE: Delegamos la búsqueda al servidor
+        loadProductsFromApi(query)
+    }
+
+    private fun loadProductsFromApi(query: String) {
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val response = RetrofitClient.instance.getProducts()
+                // 🛑 CORRECCIÓN CLAVE: Llamamos al nuevo endpoint searchProducts con la query.
+                val response = RetrofitClient.instance.searchProducts(query)
 
                 withContext(Dispatchers.Main) {
                     if (response.isSuccessful) {
-                        val allProducts = response.body() ?: emptyList()
+                        // El servidor nos devuelve SOLO los productos filtrados
+                        val filteredProducts = response.body() ?: emptyList()
 
-                        // Filtro (Case Insensitive)
-                        val filtered = allProducts.filter {
-                            it.name.contains(query, ignoreCase = true) ||
-                                    it.description.contains(query, ignoreCase = true) ||
-                                    it.categoryName.contains(query, ignoreCase = true)
-                        }
-
-                        if (filtered.isEmpty()) {
+                        if (filteredProducts.isEmpty()) {
                             textResultados.text = "No se encontraron resultados para \"$query\""
                             showNoResults()
                         } else {
-                            textResultados.text = "Resultados para \"$query\" (${filtered.size})"
-                            showResults(filtered)
+                            textResultados.text = "Resultados para \"$query\" (${filteredProducts.size})"
+                            showResults(filteredProducts)
                         }
                     } else {
-                        Toast.makeText(this@ResultadosActivity, "Error al cargar productos", Toast.LENGTH_SHORT).show()
+                        Log.e("SEARCH_API", "Error Code: ${response.code()}")
+                        Toast.makeText(this@ResultadosActivity, "Error al buscar productos", Toast.LENGTH_SHORT).show()
                         showNoResults()
                     }
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
-                    Log.e("SEARCH", "Error de red", e)
+                    Log.e("SEARCH_NET", "Error de red", e)
                     Toast.makeText(this@ResultadosActivity, "Sin conexión", Toast.LENGTH_LONG).show()
                     showNoResults()
                 }
@@ -91,15 +91,15 @@ class ResultadosActivity : AppCompatActivity() {
         }
     }
 
+
     private fun showResults(products: List<ProductModel>) {
         textNoResultados.visibility = View.GONE
         rvResultados.visibility = View.VISIBLE
 
-        // 👇 CORRECCIÓN 2: Pasamos la lista directamente al adaptador
+        // Pasamos la lista directamente al adaptador
         rvResultados.adapter = ProductAdapter(products) { product ->
 
             val intent = Intent(this, ProductDetailActivity::class.java).apply {
-                // 👇 CORRECCIÓN 3: Clave en minúsculas para que coincida con ProductDetailActivity
                 putExtra("product_id", product.id)
             }
             startActivity(intent)

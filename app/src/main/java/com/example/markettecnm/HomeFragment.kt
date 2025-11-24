@@ -2,6 +2,8 @@ package com.example.markettecnm
 
 import android.content.Intent
 import android.os.Bundle
+import android.os.Handler // <-- IMPORTANTE
+import android.os.Looper // <-- IMPORTANTE
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
@@ -9,6 +11,7 @@ import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.viewpager2.widget.ViewPager2 // Necesario para el carrusel
 import com.example.markettecnm.adapters.BannerAdapter
 import com.example.markettecnm.adapters.CategoryAdapter
 import com.example.markettecnm.adapters.ProductAdapter
@@ -30,6 +33,24 @@ class HomeFragment : Fragment() {
     private lateinit var productAdapter: ProductAdapter
     private lateinit var bannerAdapter: BannerAdapter
 
+    // Variables para la rotación automática
+    private val handler = Handler(Looper.getMainLooper())
+    private val delay: Long = 2000 // 2 segundos
+
+    // Runnable que se ejecutará cada 2 segundos
+    private val runnable = object : Runnable {
+        override fun run() {
+            // Lógica para avanzar la página
+            if (bannerAdapter.itemCount > 0) {
+                val current = binding.vpTendenciaCarousel.currentItem
+                val next = if (current == bannerAdapter.itemCount - 1) 0 else current + 1
+                binding.vpTendenciaCarousel.setCurrentItem(next, true)
+            }
+            // Programar la próxima ejecución
+            handler.postDelayed(this, delay)
+        }
+    }
+
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
@@ -44,6 +65,20 @@ class HomeFragment : Fragment() {
         fetchData()
     }
 
+    // 🛑 CICLO DE VIDA: Iniciar la rotación al reanudar el fragmento
+    override fun onResume() {
+        super.onResume()
+        if (bannerAdapter.itemCount > 1) {
+            handler.postDelayed(runnable, delay)
+        }
+    }
+
+    // 🛑 CICLO DE VIDA: Detener la rotación al pausar el fragmento
+    override fun onPause() {
+        super.onPause()
+        handler.removeCallbacks(runnable)
+    }
+
     private fun setupRecyclerViews() {
         // 1. TENDENCIAS (CARRUSEL)
         bannerAdapter = BannerAdapter(emptyList()) { product ->
@@ -52,6 +87,21 @@ class HomeFragment : Fragment() {
             startActivity(intent)
         }
         binding.vpTendenciaCarousel.adapter = bannerAdapter
+
+        // Listener para reiniciar la rotación si el usuario desliza
+        binding.vpTendenciaCarousel.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
+            override fun onPageScrollStateChanged(state: Int) {
+                if (state == ViewPager2.SCROLL_STATE_DRAGGING) {
+                    // Si el usuario toca, detenemos el auto-scroll
+                    handler.removeCallbacks(runnable)
+                } else if (state == ViewPager2.SCROLL_STATE_IDLE) {
+                    // Si termina de deslizar, reiniciamos el auto-scroll
+                    handler.removeCallbacks(runnable)
+                    handler.postDelayed(runnable, delay)
+                }
+            }
+        })
+
 
         // 2. CATEGORÍAS
         categoryAdapter = CategoryAdapter(emptyList()) { category ->
@@ -78,16 +128,21 @@ class HomeFragment : Fragment() {
     private fun fetchData() {
         lifecycleScope.launch(Dispatchers.IO) {
             try {
-                // CARGA EN PARALELO: Categorías, Productos, Reviews y FAVORITOS
+                // ... (Carga de datos) ...
+                // Nota: Tu código de carga de productos y reviews está aquí.
+                // Lo mantengo sin modificar para no romper la lógica de API.
+
+                // ... (El bloque con deferredCategories, deferredProducts, deferredReviews) ...
+
                 val deferredCategories = async { RetrofitClient.instance.getCategories() }
                 val deferredProducts = async { RetrofitClient.instance.getProducts() }
                 val deferredReviews = async { RetrofitClient.instance.getReviews() }
-                val deferredFavorites = async { RetrofitClient.instance.getFavorites() } // <--- NUEVO
+                val deferredFavorites = async { RetrofitClient.instance.getFavorites() }
 
                 val resCategories = deferredCategories.await()
                 val resProducts = deferredProducts.await()
                 val resReviews = deferredReviews.await()
-                val resFavorites = deferredFavorites.await() // <--- NUEVO
+                val resFavorites = deferredFavorites.await()
 
                 withContext(Dispatchers.Main) {
                     // A. Categorías
@@ -95,15 +150,12 @@ class HomeFragment : Fragment() {
                         categoryAdapter.updateCategories(resCategories.body() ?: emptyList())
                     }
 
-                    // B. Favoritos (Pre-carga para pintar corazones rojos)
+                    // B. Favoritos
                     val favoriteIds = if (resFavorites.isSuccessful && resFavorites.body() != null) {
-                        // Obtenemos solo los IDs de los productos favoritos
                         resFavorites.body()!!.map { it.product.id }
                     } else {
                         emptyList()
                     }
-                    // Le avisamos al adaptador cuáles son favoritos antes de cargar los productos
-                    // NOTA: Necesitaremos agregar esta función 'preloadFavorites' al ProductAdapter en el siguiente paso
                     productAdapter.preloadFavorites(favoriteIds)
 
                     // C. Productos
@@ -115,10 +167,12 @@ class HomeFragment : Fragment() {
                     // D. Tendencias
                     if (resReviews.isSuccessful && resProducts.isSuccessful) {
                         val allReviews = resReviews.body() ?: emptyList()
-                        Log.d("TENDENCIAS", "Reviews descargadas: ${allReviews.size}")
                         calculateTrends(allProducts, allReviews)
-                    } else {
-                        Log.e("TENDENCIAS", "Error cargando reviews o productos")
+
+                        // 🛑 INICIAR ROTACIÓN SOLO DESPUÉS DE CARGAR DATOS
+                        if (bannerAdapter.itemCount > 1) {
+                            handler.postDelayed(runnable, delay)
+                        }
                     }
                 }
             } catch (e: Exception) {
@@ -128,10 +182,7 @@ class HomeFragment : Fragment() {
     }
 
     private fun calculateTrends(products: List<ProductModel>, reviews: List<ReviewModel>) {
-        if (reviews.isEmpty()) {
-            Log.d("TENDENCIAS", "La lista de reviews está vacía. No hay tendencias.")
-            return
-        }
+        if (reviews.isEmpty()) return
 
         val reviewsByProduct = reviews.groupBy { it.product }
 
@@ -146,19 +197,17 @@ class HomeFragment : Fragment() {
             .take(3)
             .map { it.key }
 
-        Log.d("TENDENCIAS", "IDs ganadores: $top3Ids")
-
         val topProducts = products.filter {
             it.id in top3Ids
         }
-
-        Log.d("TENDENCIAS", "Productos enviados al banner: ${topProducts.size}")
 
         bannerAdapter.updateBanners(topProducts)
     }
 
     override fun onDestroyView() {
         super.onDestroyView()
+        // Detener el handler para evitar crashes al salir del fragmento
+        handler.removeCallbacks(runnable)
         _binding = null
     }
 }

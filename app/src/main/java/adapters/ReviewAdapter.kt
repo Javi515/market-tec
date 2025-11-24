@@ -19,7 +19,6 @@ class ReviewAdapter(
 ) : RecyclerView.Adapter<ReviewAdapter.ReviewViewHolder>() {
 
     inner class ReviewViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-        // Usamos ImageView estándar (Glide se encarga del círculo)
         val ivReviewerImage: ImageView = view.findViewById(R.id.ivReviewerImage)
         val tvReviewerName: TextView = view.findViewById(R.id.tvReviewerName)
         val tvReviewerCareer: TextView = view.findViewById(R.id.tvReviewerCareer)
@@ -43,7 +42,7 @@ class ReviewAdapter(
         // Usamos el operador Elvis (?:) para valores por defecto
         val name = reviewer?.firstName ?: "Anónimo"
         val career = reviewer?.career ?: ""
-        val image = reviewer?.profileImage
+        val image = reviewer?.profileImage // URL de la imagen de perfil
 
         holder.tvReviewerName.text = name
         holder.tvReviewerCareer.text = career
@@ -54,16 +53,17 @@ class ReviewAdapter(
         if (!image.isNullOrEmpty()) {
             Glide.with(holder.itemView.context)
                 .load(image)
-                .circleCrop() // Esto hace la imagen redonda sin necesitar librerías extra
-                .placeholder(android.R.drawable.sym_def_app_icon) // Icono por defecto sistema
-                .error(android.R.drawable.sym_def_app_icon)
+                .circleCrop()
+                // 🛠️ CORRECCIÓN: Usar R.drawable.ic_person como placeholder y error
+                .placeholder(R.drawable.ic_person)
+                .error(R.drawable.ic_person)
                 .into(holder.ivReviewerImage)
         } else {
-            holder.ivReviewerImage.setImageResource(android.R.drawable.sym_def_app_icon)
+            // 🛠️ CORRECCIÓN: Si no hay URL, usar R.drawable.ic_person
+            holder.ivReviewerImage.setImageResource(R.drawable.ic_person)
         }
 
         // 3. Lógica del Menú (Solo si el nombre coincide)
-        // Comparamos con seguridad usando '?'
         if (reviewer?.firstName == currentUserName) {
             holder.btnOptions.visibility = View.VISIBLE
             holder.btnOptions.setOnClickListener { view ->

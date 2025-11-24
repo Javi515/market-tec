@@ -1,19 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="horizontal"
-    android:paddingVertical="12dp"
+    android:paddingVertical="8dp"
     android:paddingHorizontal="4dp">
 
     <ImageView
         android:id="@+id/ivReviewerImage"
         android:layout_width="40dp"
         android:layout_height="40dp"
-        android:layout_marginTop="4dp"
         android:scaleType="centerCrop"
-        android:src="@drawable/ic_placeholder_profile"
+        android:src="@drawable/ic_person"
         android:layout_marginEnd="12dp" />
 
     <LinearLayout
@@ -37,29 +37,32 @@
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent" />
 
+            <TextView
+                android:id="@+id/tvReviewDate"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="23 Nov 2025"
+                android:textSize="11sp"
+                android:textColor="#757575"
+                android:layout_marginEnd="8dp"
+                app:layout_constraintEnd_toStartOf="@id/btnOptions"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent"
+                tools:text="2025-11-24" />
+
             <ImageView
                 android:id="@+id/btnOptions"
                 android:layout_width="20dp"
                 android:layout_height="20dp"
-                android:src="@android:drawable/ic_menu_more"
+                android:src="@drawable/ic_more_vertical"
                 android:contentDescription="Opciones"
-                app:tint="#999999"
+                app:tint="#444444"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:clickable="true"
+                android:focusable="true"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintTop_toTopOf="parent"/>
         </androidx.constraintlayout.widget.ConstraintLayout>
-
-        <RatingBar
-            android:id="@+id/ratingBar"
-            style="?android:attr/ratingBarStyleSmall"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:numStars="5"
-            android:stepSize="1.0"
-            android:rating="5"
-            android:isIndicator="true"
-            android:layout_marginTop="2dp"
-            android:progressTint="#FFC107"
-            android:secondaryProgressTint="#FFC107" />
 
         <TextView
             android:id="@+id/tvReviewerCareer"
@@ -68,7 +71,30 @@
             android:text="Carrera"
             android:textColor="#757575"
             android:textSize="12sp"
-            android:layout_marginTop="2dp" />
+            android:layout_marginTop="1dp"
+            android:layout_marginBottom="2dp"
+            tools:text="Ing. Sistemas Computacionales"/>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginTop="2dp">
+
+            <RatingBar
+                android:id="@+id/ratingBar"
+                style="?android:attr/ratingBarStyleSmall"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:numStars="5"
+                android:stepSize="1.0"
+                android:rating="5"
+                android:isIndicator="true"
+                android:progressTint="#FFC107"
+                android:secondaryProgressTint="#FFC107" />
+        </LinearLayout>
+
 
         <TextView
             android:id="@+id/tvComment"
@@ -77,7 +103,7 @@
             android:text="Comentario del usuario..."
             android:textColor="#444444"
             android:textSize="14sp"
-            android:layout_marginTop="6dp"
-            android:lineSpacingExtra="2dp" />
+            android:layout_marginTop="4dp" />
+
     </LinearLayout>
 </LinearLayout>

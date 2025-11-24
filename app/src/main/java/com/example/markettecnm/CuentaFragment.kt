@@ -9,30 +9,40 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.ImageView
+import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
+import com.google.android.material.floatingactionbutton.FloatingActionButton // <--- IMPORTACIÓN CLAVE
 
 class CuentaFragment : Fragment() {
 
     private lateinit var imgAvatar: ImageView
-    private lateinit var btnCambiarFoto: Button
+    // FIX: Cambiamos de Button a FloatingActionButton (FAB)
+    private lateinit var fabChangePhoto: FloatingActionButton
 
-    // Preferencias locales para guardar la URI de la imagen
-    private val prefs by lazy {
+    private lateinit var textNombre: TextView
+    private lateinit var textCorreo: TextView
+    private lateinit var btnEditarPerfil: Button
+
+    // Preferencias de Sesión (token, nombre, id)
+    private val sessionPrefs by lazy {
+        requireContext().getSharedPreferences("markettec_prefs", Context.MODE_PRIVATE)
+    }
+
+    // Preferencias locales (avatar)
+    private val avatarPrefs by lazy {
         requireContext().getSharedPreferences("account_prefs", Context.MODE_PRIVATE)
     }
 
-    // Abrir galería para seleccionar imagen
+    // Abrir galería para seleccionar imagen (pickImage está bien)
     private val pickImage = registerForActivityResult(
         ActivityResultContracts.OpenDocument()
     ) { uri: Uri? ->
         if (uri != null) {
-            // Mantener permiso de acceso a la imagen
             requireContext().contentResolver.takePersistableUriPermission(
                 uri,
                 Intent.FLAG_GRANT_READ_URI_PERMISSION
             )
-            // Guardar y mostrar la imagen
             saveAvatarUri(uri)
             imgAvatar.setImageURI(uri)
         }
@@ -45,10 +55,16 @@ class CuentaFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        // 1. Inicialización de Vistas
         imgAvatar = view.findViewById(R.id.imgAvatar)
-        btnCambiarFoto = view.findViewById(R.id.btnCambiarFoto)
+        // FIX: Inicializar el FAB con el ID correcto
+        fabChangePhoto = view.findViewById(R.id.fabChangePhoto)
 
-        // Cargar imagen guardada si existe
+        textNombre = view.findViewById(R.id.textNombre)
+        textCorreo = view.findViewById(R.id.textCorreo)
+        btnEditarPerfil = view.findViewById(R.id.btnEditarPerfil)
+
+        // 2. Cargar la imagen del avatar guardada (si existe)
         loadSavedAvatar()?.let { uri ->
             imgAvatar.setImageURI(uri)
             try {
@@ -58,12 +74,22 @@ class CuentaFragment : Fragment() {
             } catch (_: Exception) { }
         }
 
-        // Botón para abrir galería
-        btnCambiarFoto.setOnClickListener {
+        // 3. Mostrar nombre y correo de la sesión actual
+        displayUserInfo()
+
+        // 4. Listeners
+
+        // FIX: Asignar el listener al FAB
+        fabChangePhoto.setOnClickListener {
             pickImage.launch(arrayOf("image/*"))
         }
 
-        // ======= Apartados interactivos =======
+        btnEditarPerfil.setOnClickListener {
+            val intent = Intent(requireContext(), EditarPerfilActivity::class.java)
+            startActivity(intent)
+        }
+
+        // ======= Apartados interactivos de la lista =======
         view.findViewById<View>(R.id.rowCompras).setOnClickListener {
             startActivity(Intent(requireContext(), MisComprasActivity::class.java))
         }
@@ -80,15 +106,10 @@ class CuentaFragment : Fragment() {
             startActivity(Intent(requireContext(), PublicacionesActivity::class.java))
         }
 
-        /*view.findViewById<View>(R.id.rowAccesibilidad).setOnClickListener {
-            startActivity(Intent(requireContext(), AccesibilidadActivity::class.java))
-        }*/
-
         view.findViewById<View>(R.id.rowLogout).setOnClickListener {
-            // Limpiar datos de sesión
-            val sessionPrefs = requireContext().getSharedPreferences("markettec_prefs", Context.MODE_PRIVATE)
+            // Limpiar datos de sesión y avatar
             sessionPrefs.edit().clear().apply()
-            prefs.edit().clear().apply()
+            avatarPrefs.edit().clear().apply()
 
             // Regresar al login
             val i = Intent(requireContext(), MainActivity::class.java)
@@ -97,14 +118,22 @@ class CuentaFragment : Fragment() {
         }
     }
 
-    // Guardar URI en SharedPreferences
-    private fun saveAvatarUri(uri: Uri) {
-        prefs.edit().putString("avatar_uri", uri.toString()).apply()
+    // Función para leer y mostrar los datos del perfil
+    private fun displayUserInfo() {
+        val name = sessionPrefs.getString("current_user_first_name", "Invitado")
+        val loginId = sessionPrefs.getString("username", "Sin sesión")
+
+        textNombre.text = name
+        textCorreo.text = loginId
     }
 
-    // Leer URI guardada
+    // Funciones auxiliares
+    private fun saveAvatarUri(uri: Uri) {
+        avatarPrefs.edit().putString("avatar_uri", uri.toString()).apply()
+    }
+
     private fun loadSavedAvatar(): Uri? {
-        val s = prefs.getString("avatar_uri", null) ?: return null
+        val s = avatarPrefs.getString("avatar_uri", null) ?: return null
         return Uri.parse(s)
     }
 }

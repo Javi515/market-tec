@@ -1,83 +1,103 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#FFFFFF"
-    android:fillViewport="true"
-    android:clipToPadding="false">
+    android:fillViewport="true">
 
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
+        android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="20dp"
-        android:paddingBottom="12dp">
+        android:paddingTop="20dp"
+        android:paddingHorizontal="20dp"
+        android:paddingBottom="20dp">
 
         <TextView
             android:id="@+id/titleCuenta"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Cuenta"
+            android:text="Mi Perfil"
             android:textSize="26sp"
             android:textStyle="bold"
             android:textColor="#212121"
-            android:layout_marginBottom="16dp"/>
+            android:layout_marginBottom="24dp"/>
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:layout_marginBottom="16dp">
+            android:orientation="vertical"
+            android:gravity="center_horizontal"
+            android:layout_marginBottom="24dp">
 
-            <ImageView
-                android:id="@+id/imgAvatar"
-                android:layout_width="64dp"
-                android:layout_height="64dp"
-                android:src="@drawable/ic_person"
-                android:scaleType="centerCrop"
-                android:contentDescription="Foto de perfil"
-                android:layout_marginEnd="12dp"
-                android:background="@drawable/avatar_circle_bg"
-                android:clipToOutline="true" />
+            <FrameLayout
+                android:layout_width="100dp"
+                android:layout_height="100dp">
 
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:orientation="vertical">
+                <ImageView
+                    android:id="@+id/imgAvatar"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:src="@drawable/ic_person"
+                    android:scaleType="centerCrop"
+                    android:contentDescription="Foto de perfil"
+                    android:background="@drawable/avatar_circle_bg"
+                    android:clipToOutline="true" />
 
-                <TextView
-                    android:id="@+id/textNombre"
+                <com.google.android.material.floatingactionbutton.FloatingActionButton
+                    android:id="@+id/fabChangePhoto"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="James"
-                    android:textStyle="bold"
-                    android:textSize="18sp"
-                    android:textColor="#212121"/>
+                    android:layout_gravity="bottom|end"
+                    android:clickable="true"
+                    android:focusable="true"
+                    app:fabSize="mini"
+                    app:srcCompat="@drawable/ic_camera_alt"
+                    app:tint="#444444"
+                    app:backgroundTint="@android:color/darker_gray"
+                    android:layout_marginEnd="-8dp"
+                    android:layout_marginBottom="-8dp"
+                    android:contentDescription="Cambiar foto de perfil" />
 
-                <TextView
-                    android:id="@+id/textCorreo"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="james@tec.com"
-                    android:textSize="14sp"
-                    android:textColor="#8A8A8A"/>
-            </LinearLayout>
+            </FrameLayout>
 
-            <Button
-                android:id="@+id/btnCambiarFoto"
+            <TextView
+                android:id="@+id/textNombre"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Cambiar foto"
-                android:backgroundTint="#2196F3" />
+                android:layout_marginTop="16dp"
+                android:text="Cargando Nombre..."
+                android:textStyle="bold"
+                android:textSize="20sp"
+                android:textColor="#212121"/>
+
+            <TextView
+                android:id="@+id/textCorreo"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Cargando Correo..."
+                android:textSize="14sp"
+                android:textColor="#8A8A8A"/>
+
         </LinearLayout>
+
+        <Button
+            android:id="@+id/btnEditarPerfil"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:layout_marginTop="16dp"
+            android:text="Editar Perfil"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:backgroundTint="#FF9800"
+            app:cornerRadius="8dp" />
 
         <View
             android:layout_width="match_parent"
             android:layout_height="1dp"
             android:background="#E6E6E6"
-            android:layout_marginBottom="8dp"/>
+            android:layout_marginVertical="16dp"/>
 
         <TextView
             android:id="@+id/rowCompras"
@@ -87,7 +107,6 @@
             android:textColor="#212121"
             android:textSize="16sp"
             android:paddingVertical="14dp"
-            android:paddingStart="0dp"
             android:drawableStart="@drawable/ic_shopping_cart"
             android:drawableTint="#444444"
             android:drawablePadding="14dp"
@@ -113,7 +132,7 @@
             android:layout_width="match_parent"
             android:layout_height="1dp"
             android:background="#E6E6E6"
-            android:layout_marginVertical="8dp"/>
+            android:layout_marginVertical="12dp"/>
 
         <TextView
             android:id="@+id/rowVender"
@@ -151,7 +170,7 @@
             android:layout_width="match_parent"
             android:layout_height="1dp"
             android:background="#E6E6E6"
-            android:layout_marginVertical="8dp"/>
+            android:layout_marginVertical="12dp"/>
 
         <TextView
             android:id="@+id/rowLogout"

@@ -1,8 +1,9 @@
 package com.example.markettecnm
 
 import android.content.Context
-import android.content.Intent // <--- IMPORTANTE PARA ABRIR LA OTRA PANTALLA
+import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import android.widget.*
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
@@ -16,6 +17,8 @@ import com.example.markettecnm.models.ReviewModel
 import com.example.markettecnm.network.*
 import com.google.android.material.textfield.TextInputEditText
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 class ProductDetailActivity : AppCompatActivity() {
 
@@ -38,7 +41,9 @@ class ProductDetailActivity : AppCompatActivity() {
     private lateinit var ratingBarInput: RatingBar
     private lateinit var btnSubmitReview: Button
 
-    private val currentUserName: String = "Usuario"
+    private val currentUserName: String by lazy {
+        getSharedPreferences("markettec_prefs", MODE_PRIVATE).getString("current_user_first_name", "Usuario") ?: "Usuario"
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -89,7 +94,7 @@ class ProductDetailActivity : AppCompatActivity() {
 
         btnSubmitReview.setOnClickListener { submitReview() }
 
-        // CORRECCIÓN: Bloquear rating en mínimo 1 estrella
+        // Bloquear rating en mínimo 1 estrella
         ratingBarInput.setOnRatingBarChangeListener { ratingBar, rating, _ ->
             if (rating < 1.0f) {
                 ratingBar.rating = 1.0f
@@ -130,7 +135,7 @@ class ProductDetailActivity : AppCompatActivity() {
                 .placeholder(android.R.drawable.ic_menu_gallery)
                 .into(ivProductImage)
 
-            // CORRECCIÓN: Habilitar clic para abrir FullScreenImageActivity
+            // Habilitar clic para abrir FullScreenImageActivity
             ivProductImage.setOnClickListener {
                 try {
                     val intent = Intent(this, FullScreenImageActivity::class.java)
@@ -156,7 +161,7 @@ class ProductDetailActivity : AppCompatActivity() {
                 Glide.with(this)
                     .load(vendor.profileImage)
                     .circleCrop()
-                    .placeholder(R.drawable.ic_placeholder_profile) // Usamos un placeholder seguro
+                    .placeholder(android.R.drawable.ic_menu_myplaces)
                     .into(ivVendorImage)
             }
         } else {
@@ -234,7 +239,7 @@ class ProductDetailActivity : AppCompatActivity() {
                 if (response.isSuccessful) {
                     Toast.makeText(this@ProductDetailActivity, "¡Reseña enviada!", Toast.LENGTH_LONG).show()
                     etComment.text?.clear()
-                    // CORRECCIÓN: Resetear a 1 estrella en lugar de 0
+                    // Resetear a 1 estrella en lugar de 0
                     ratingBarInput.rating = 1f
                     loadReviews(product.id)
                 } else {
@@ -243,8 +248,10 @@ class ProductDetailActivity : AppCompatActivity() {
             } catch (e: Exception) {
                 Toast.makeText(this@ProductDetailActivity, "Sin conexión", Toast.LENGTH_SHORT).show()
             } finally {
-                btnSubmitReview.isEnabled = true
-                btnSubmitReview.text = "Enviar reseña"
+                withContext(Dispatchers.Main) {
+                    btnSubmitReview.isEnabled = true
+                    btnSubmitReview.text = "Enviar reseña"
+                }
             }
         }
     }
@@ -253,7 +260,6 @@ class ProductDetailActivity : AppCompatActivity() {
     private fun showEditDialog(review: ReviewModel) {
         val dialogView = layoutInflater.inflate(R.layout.dialog_edit_review, null)
 
-        // CORRECCIÓN DE SEGURIDAD: Usamos EditText genérico
         val etEditComment = dialogView.findViewById<EditText>(R.id.etEditComment)
         val ratingBarEdit = dialogView.findViewById<RatingBar>(R.id.ratingBarEdit)
 
@@ -284,16 +290,35 @@ class ProductDetailActivity : AppCompatActivity() {
     private fun updateReview(reviewId: Int, rating: Int, comment: String) {
         lifecycleScope.launch {
             try {
-                val request = UpdateReviewRequest(rating = rating, comment = comment)
-                val response = RetrofitClient.instance.updateReview(reviewId, request)
-                if (response.isSuccessful) {
-                    Toast.makeText(this@ProductDetailActivity, "Reseña actualizada ⭐", Toast.LENGTH_SHORT).show()
-                    loadReviews(product.id)
-                } else {
-                    Toast.makeText(this@ProductDetailActivity, "Error al actualizar", Toast.LENGTH_SHORT).show()
+                // 🛑 Mover la lógica pesada a IO
+                val response = withContext(Dispatchers.IO) {
+                    // 🛠️ CORRECCIÓN CLAVE: Pasamos todos los campos requeridos por el backend
+                    val request = UpdateReviewRequest(
+                        id = reviewId,
+                        product = product.id,
+                        rating = rating,
+                        comment = comment
+                    )
+                    RetrofitClient.instance.updateReview(reviewId, request)
+                }
+
+                // Volver al hilo principal para UI y chequeo
+                withContext(Dispatchers.Main) {
+                    if (response.isSuccessful) {
+                        Toast.makeText(this@ProductDetailActivity, "Reseña actualizada ⭐", Toast.LENGTH_SHORT).show()
+                        loadReviews(product.id)
+                    } else {
+                        // 🛠️ AGREGAMOS LOGGING
+                        val errorBody = response.errorBody()?.string()
+                        Log.e("REVIEW_UPDATE_API", "FALLO: Código ${response.code()} | Body: $errorBody")
+
+                        Toast.makeText(this@ProductDetailActivity, "Error ${response.code()} al actualizar (Ver Logcat).", Toast.LENGTH_SHORT).show()
+                    }
                 }
             } catch (e: Exception) {
-                Toast.makeText(this@ProductDetailActivity, "Sin conexión", Toast.LENGTH_SHORT).show()
+                // Logueamos el error de red
+                Log.e("REVIEW_UPDATE_NET", "Error de red: ${e.message}")
+                Toast.makeText(this@ProductDetailActivity, "Sin conexión o error de red.", Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -310,9 +335,13 @@ class ProductDetailActivity : AppCompatActivity() {
                             Toast.makeText(this@ProductDetailActivity, "Reseña eliminada", Toast.LENGTH_SHORT).show()
                             loadReviews(product.id)
                         } else {
-                            Toast.makeText(this@ProductDetailActivity, "Error al eliminar", Toast.LENGTH_SHORT).show()
+                            // Logueamos el error de eliminación también
+                            val errorBody = response.errorBody()?.string()
+                            Log.e("REVIEW_DELETE_API", "FALLO: Código ${response.code()} | Body: $errorBody")
+                            Toast.makeText(this@ProductDetailActivity, "Error al eliminar.", Toast.LENGTH_SHORT).show()
                         }
                     } catch (e: Exception) {
+                        Log.e("REVIEW_DELETE_NET", "Error de red: ${e.message}")
                         Toast.makeText(this@ProductDetailActivity, "Sin conexión", Toast.LENGTH_SHORT).show()
                     }
                 }

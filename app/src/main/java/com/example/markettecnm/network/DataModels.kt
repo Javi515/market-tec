@@ -3,7 +3,9 @@ package com.example.markettecnm.network
 import com.google.gson.annotations.SerializedName
 import com.example.markettecnm.models.ProductModel
 
-// ========== AUTENTICACIÓN ==========
+// ======================================================================
+// DTOs DE AUTENTICACIÓN Y BASE
+// ======================================================================
 
 data class LoginRequestBody(
     val username: String,
@@ -48,8 +50,41 @@ data class ErrorResponse(
     val phoneNumber: List<String>? = null
 )
 
-// ========== VENDEDOR ==========
+// ======================================================================
+// DTOs DE PERFIL Y EDICIÓN (UserProfile, VendorModel)
+// ======================================================================
 
+// 1. DTO ANIDADO: Campos del objeto 'profile'
+data class ProfileDetail(
+    @SerializedName("phone_number") val phoneNumber: String?,
+    @SerializedName("control_number") val controlNumber: String?,
+    val career: String?,
+    @SerializedName("date_of_birth") val dateOfBirth: String?,
+    @SerializedName("profile_image") val profileImage: String?,
+    val role: String?
+)
+
+// 2. MODELO PRINCIPAL DE PERFIL (Respuesta del GET /api/users/profile/)
+data class UserProfile(
+    val id: Int,
+    val username: String,
+    val email: String,
+    @SerializedName("first_name")
+    val firstName: String,
+    // Referencia a la estructura anidada
+    val profile: ProfileDetail?
+)
+
+// 3. DTO DE PETICIÓN (PATCH) para Editar Perfil
+data class UserProfileUpdate(
+    @SerializedName("first_name") val firstName: String?,
+    val email: String?,
+    @SerializedName("phone_number") val phoneNumber: String?,
+    @SerializedName("date_of_birth") val dateOfBirth: String?,
+    val password: String?
+)
+
+// 4. VENDOR MODEL (Usado en ProductModel como un objeto DTO simple)
 data class VendorModel(
     @SerializedName("first_name")
     val firstName: String? = null,
@@ -58,13 +93,14 @@ data class VendorModel(
     val career: String? = null
 )
 
-// ========== FAVORITOS ==========
+// ======================================================================
+// DTOs DE CARRITO Y RESEÑAS
+// ======================================================================
 
 data class FavoriteResponse(
     val id: Int,
     val product: ProductModel
 )
-
 
 data class ToggleFavoriteRequest(
     @SerializedName("product_id")
@@ -76,8 +112,6 @@ data class AddFavoriteRequest(
     val productId: Int
 )
 
-// ========== RESEÑAS ==========
-
 data class CreateReviewRequest(
     val product: Int,
     val rating: Int,
@@ -86,13 +120,7 @@ data class CreateReviewRequest(
 
 data class UpdateReviewRequest(
     val rating: Int,
-    val comment: String
-)
-
-data class UserProfile(
+    val comment: String,
     val id: Int,
-    @SerializedName("username")
-    val username: String,
-    @SerializedName("first_name") // Este es el campo que usamos para el filtro
-    val firstName: String
+    val product: Int
 )

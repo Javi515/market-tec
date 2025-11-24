@@ -63,6 +63,11 @@
             android:exported="false" />
 
         <activity
+            android:name=".EditarPerfilActivity"
+            android:exported="false"
+            android:parentActivityName=".HomeActivity" />
+
+        <activity
             android:name=".ModificarProductoActivity"
             android:exported="false"
             android:parentActivityName=".PublicacionesActivity" />

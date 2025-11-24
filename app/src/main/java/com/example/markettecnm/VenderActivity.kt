@@ -56,6 +56,10 @@ class VenderActivity : AppCompatActivity() {
                 uri,
                 Intent.FLAG_GRANT_READ_URI_PERMISSION
             )
+
+            // 💡 CORRECCIÓN 1: Cambiar scaleType para que la foto llene el recuadro
+            ivProductImage.scaleType = ImageView.ScaleType.CENTER_CROP
+
             // Mostrar la imagen seleccionada
             ivProductImage.setImageURI(uri)
             tvSelectImage.visibility = View.GONE
@@ -64,6 +68,7 @@ class VenderActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // 💡 CORRECCIÓN 2: El layout se llama activity_vender.xml por convención
         setContentView(R.layout.vender)
 
         supportActionBar?.title = "Publicar Venta"
@@ -90,6 +95,9 @@ class VenderActivity : AppCompatActivity() {
 
     private fun setupClickListeners() {
         ivProductImage.setOnClickListener {
+            // Cuando se hace clic, volvemos a poner el scaleType en CENTER_INSIDE
+            // para que el placeholder (el icono de galería) se vea pequeño y centrado
+            ivProductImage.scaleType = ImageView.ScaleType.CENTER_INSIDE
             pickImage.launch(arrayOf("image/*"))
         }
 
@@ -202,9 +210,9 @@ class VenderActivity : AppCompatActivity() {
 
     private fun showError(message: String) {
         tvError.text = message
-        tvError.visibility = View.VISIBLE
         btnPublish.isEnabled = true
         btnPublish.text = "Publicar Producto"
+        tvError.visibility = View.VISIBLE
     }
 
     private fun uriToFile(uri: Uri, fileName: String): File {

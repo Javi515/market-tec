@@ -13,11 +13,18 @@ const val BASE_URL = "http://172.200.235.24/"
 
 interface ApiService {
 
+    // ========== PRODUCTOS, BÚSQUEDA Y CATEGORÍAS ==========
+
     @GET("api/products/")
     suspend fun getProducts(): Response<List<ProductModel>>
 
     @GET("api/products/{id}/")
     suspend fun getProductDetail(@Path("id") productId: Int): Response<ProductModel>
+
+    // 💡 CORRECCIÓN: Cambiamos el parámetro de búsqueda de "search" a "q"
+    @GET("api/products/")
+    suspend fun searchProducts(@Query("q") query: String): Response<List<ProductModel>>
+    // Esto genera una URL como: http://.../api/products/?q=Lavadora
 
     @GET("api/categories/")
     suspend fun getCategories(): Response<List<CategoryModel>>
@@ -32,20 +39,22 @@ interface ApiService {
 
     // ACTUALIZAR PRODUCTO
     @Multipart
-    @PUT("api/products/{id}/")
+    @PATCH("api/products/{id}/")
     suspend fun updateProduct(
         @Path("id") productId: Int,
         @PartMap params: Map<String, @JvmSuppressWildcards RequestBody>,
         @Part image: MultipartBody.Part?
     ): Response<ProductModel>
 
-    // ELIMINAR PRODUCTO (NUEVO)
     @DELETE("api/products/{id}/")
-    suspend fun deleteProduct(@Path("id") productId: Int): Response<Unit> // <-- AGREGADO
+    suspend fun deleteProduct(@Path("id") productId: Int): Response<Unit>
 
     // ================== PERFIL Y AUTENTICACIÓN ==================
     @GET("api/users/profile/")
     suspend fun getMyProfile(): Response<UserProfile>
+
+    @PATCH("api/users/profile/")
+    suspend fun updateProfile(@Body request: UserProfileUpdate): Response<UserProfile>
 
     @GET("api/favorites/")
     suspend fun getFavorites(): Response<List<FavoriteResponse>>
@@ -66,7 +75,7 @@ interface ApiService {
     @POST("api/reviews/")
     suspend fun postReview(@Body review: CreateReviewRequest): Response<Void>
 
-    @PUT("api/reviews/{id}/")
+    @PATCH("api/reviews/{id}/")
     suspend fun updateReview(
         @Path("id") reviewId: Int,
         @Body request: UpdateReviewRequest

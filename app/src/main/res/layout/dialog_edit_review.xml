@@ -1,33 +1,55 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
     android:padding="20dp"
     android:background="#FFFFFF">
 
-    <EditText
-        android:id="@+id/etEditComment"
+    <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Edita tu comentario..."
-        android:minLines="4"
-        android:gravity="top|start"
-        android:background="@android:drawable/editbox_background_normal"
-        android:padding="12dp"
-        android:layout_marginBottom="16dp" />
+        android:text="Edita tu reseña"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:textColor="#333333"
+        android:layout_marginBottom="16dp"
+        android:gravity="center_horizontal"/>
 
-    <!-- EL ÚNICO RatingBar QUE NUNCA CRASHEA EN 2025 -->
     <RatingBar
         android:id="@+id/ratingBarEdit"
-        style="@android:style/Widget.Material.RatingBar.Small"
+        style="?android:attr/ratingBarStyle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="center_horizontal"
         android:numStars="5"
         android:stepSize="1.0"
         android:isIndicator="false"
-        android:scaleX="2.0"
-        android:scaleY="2.0" />
+        android:progressTint="#FFC107"
+        android:secondaryProgressTint="@android:color/darker_gray"
+        android:layout_marginBottom="20dp"
+        android:scaleX="1.1"
+        android:scaleY="1.1" /> <com.google.android.material.textfield.TextInputLayout
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:hint="Edita tu comentario..."
+    app:boxCornerRadiusBottomEnd="8dp"
+    app:boxCornerRadiusBottomStart="8dp"
+    app:boxCornerRadiusTopEnd="8dp"
+    app:boxCornerRadiusTopStart="8dp"
+    app:boxStrokeColor="#000000"
+    app:hintTextColor="#000000"
+    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+
+    <com.google.android.material.textfield.TextInputEditText
+        android:id="@+id/etEditComment"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:minLines="3"
+        android:gravity="top"
+        android:inputType="textMultiLine" />
+
+</com.google.android.material.textfield.TextInputLayout>
 
 </LinearLayout>
