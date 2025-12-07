@@ -7,13 +7,12 @@ import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.lifecycleScope // ✅ Importante para evitar crashes
 import com.example.markettecnm.network.LoginRequestBody
-import com.example.markettecnm.network.TokenResponse
 import com.example.markettecnm.network.RetrofitClient
 import com.example.markettecnm.network.ErrorResponse
 import com.google.android.material.textfield.TextInputEditText
 import com.google.gson.Gson
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -64,72 +63,88 @@ class MainActivity : AppCompatActivity() {
         btnIniciarSesion.isEnabled = false
 
         val requestBody = LoginRequestBody(username = username, password = password)
-        val coroutineScope = CoroutineScope(Dispatchers.IO)
 
-        coroutineScope.launch {
+        // ✅ USAMOS lifecycleScope: Es más seguro que crear un CoroutineScope manual
+        lifecycleScope.launch(Dispatchers.IO) {
             try {
+                // 1. LOGIN: Obtener Token
                 val response = RetrofitClient.instance.loginUser(requestBody)
 
-                withContext(Dispatchers.Main) {
-                    btnIniciarSesion.isEnabled = true
+                if (response.isSuccessful && response.body() != null) {
+                    val accessToken = response.body()!!.accessToken
 
-                    if (response.isSuccessful) {
-                        val tokenResponse = response.body()
-                        if (tokenResponse != null) {
-                            val accessToken = tokenResponse.accessToken
+                    // Guardar Token TEMPORALMENTE
+                    val prefs = getSharedPreferences("markettec_prefs", MODE_PRIVATE)
+                    prefs.edit().putString("access_token", accessToken).apply()
 
-                            // 1. Guardar Token inmediatamente
-                            val prefs = getSharedPreferences("markettec_prefs", MODE_PRIVATE)
-                            prefs.edit().putString("access_token", accessToken).apply()
+                    // 2. OBTENER PERFIL: Verificar Baneo y Datos
+                    try {
+                        val profileResponse = RetrofitClient.instance.getMyProfile()
 
-                            // 2. HACEMOS LLAMADA ADICIONAL PARA OBTENER EL NOMBRE DE PILA (FirstName)
-                            // Ejecutamos el perfil fetch en una nueva corrutina o la misma
-                            coroutineScope.launch(Dispatchers.IO) {
-                                try {
-                                    val profileResponse = RetrofitClient.instance.getMyProfile()
+                        withContext(Dispatchers.Main) {
+                            if (profileResponse.isSuccessful && profileResponse.body() != null) {
+                                val userProfile = profileResponse.body()!!
 
-                                    withContext(Dispatchers.Main) {
-                                        if (profileResponse.isSuccessful) {
-                                            val profile = profileResponse.body()
-                                            profile?.let { userProfile ->
-                                                // 3. GUARDAMOS EL NOMBRE Y ID ÚNICO DEL VENDEDOR
-                                                prefs.edit().apply {
-                                                    // Guardamos el ID único (seguro para el futuro)
-                                                    putInt("current_user_id", userProfile.id)
-                                                    // Guardamos el nombre de pila para el filtro visual en Publicaciones
-                                                    putString("current_user_first_name", userProfile.firstName)
-                                                    apply()
-                                                }
+                                // 🛑 VERIFICACIÓN DE BANEO
+                                // Ahora sí detecta 'isBanned' porque ya actualizamos Models.kt
+                                val isBanned = userProfile.profile?.isBanned == true
 
-                                                Toast.makeText(this@MainActivity, "Inicio de sesión exitoso!", Toast.LENGTH_SHORT).show()
-                                                startActivity(Intent(this@MainActivity, HomeActivity::class.java))
-                                                finish()
+                                if (isBanned) {
+                                    // 🚨 USUARIO BANEADO
+                                    // 1. Borrar token para cerrar la sesión a medias
+                                    prefs.edit().clear().apply()
 
-                                            } ?: throw Exception("Datos de perfil vacíos.")
-                                        } else {
-                                            // Si falla el perfil (ej. 404), limpiamos el token y avisamos
-                                            prefs.edit().clear().apply()
-                                            Toast.makeText(this@MainActivity, "Fallo al obtener datos de perfil. Reintenta.", Toast.LENGTH_LONG).show()
-                                        }
+                                    // 2. Obtener razón del baneo
+                                    val banReason = userProfile.profile?.banReason ?: "Cuenta suspendida."
+
+                                    // 3. Ir a Pantalla de Baneo
+                                    val intent = Intent(this@MainActivity, BannedActivity::class.java)
+                                    intent.putExtra("ban_reason", banReason)
+                                    startActivity(intent)
+
+                                    // Reactivamos el botón por si regresan
+                                    btnIniciarSesion.isEnabled = true
+                                } else {
+                                    // ✅ USUARIO ACTIVO (Flujo Normal)
+                                    prefs.edit().apply {
+                                        putInt("current_user_id", userProfile.id)
+                                        putString("current_user_first_name", userProfile.firstName)
+                                        apply()
                                     }
-                                } catch (e: Exception) {
-                                    withContext(Dispatchers.Main) {
-                                        Log.e("LOGIN_PROFILE", "Error de red al obtener perfil.", e)
-                                        Toast.makeText(this@MainActivity, "Error de red al obtener perfil.", Toast.LENGTH_LONG).show()
-                                    }
+
+                                    Toast.makeText(this@MainActivity, "¡Bienvenido ${userProfile.firstName}!", Toast.LENGTH_SHORT).show()
+                                    startActivity(Intent(this@MainActivity, HomeActivity::class.java))
+                                    finish() // Cerramos el login
                                 }
+                            } else {
+                                // Error al obtener perfil
+                                prefs.edit().clear().apply()
+                                btnIniciarSesion.isEnabled = true
+                                Toast.makeText(this@MainActivity, "No se pudo cargar el perfil.", Toast.LENGTH_SHORT).show()
                             }
-
                         }
-                    } else {
+                    } catch (e: Exception) {
+                        withContext(Dispatchers.Main) {
+                            prefs.edit().clear().apply()
+                            btnIniciarSesion.isEnabled = true
+                            Log.e("LOGIN_PROFILE", "Error perfil", e)
+                            Toast.makeText(this@MainActivity, "Error al verificar cuenta.", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+
+                } else {
+                    // Error en el Login (Usuario/Contra incorrectos)
+                    withContext(Dispatchers.Main) {
+                        btnIniciarSesion.isEnabled = true
                         handleLoginApiError(response.errorBody()?.string(), response.code())
                     }
                 }
+
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
                     btnIniciarSesion.isEnabled = true
-                    Log.e("LOGIN_ERROR", "Error de conexión: ${e.message}")
-                    Toast.makeText(this@MainActivity, "Error de red: ${e.message}", Toast.LENGTH_LONG).show()
+                    Log.e("LOGIN_ERROR", "Error conexión", e)
+                    Toast.makeText(this@MainActivity, "Error de conexión con el servidor", Toast.LENGTH_LONG).show()
                 }
             }
         }

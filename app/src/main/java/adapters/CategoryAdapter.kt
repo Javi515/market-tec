@@ -8,7 +8,9 @@ import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.example.markettecnm.R
-import com.example.markettecnm.network.CategoryModel
+
+// 👇 CORRECCIÓN IMPORTANTE: Apuntar al paquete 'models' unificado
+import com.example.markettecnm.models.CategoryModel
 
 /**
  * Adaptador para mostrar la lista de categorías.

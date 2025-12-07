@@ -25,21 +25,27 @@ class CartActivity : AppCompatActivity() {
     private lateinit var rvCartProducts: RecyclerView
     private lateinit var btnOrder: Button
     private lateinit var tvEmptyCart: TextView
-    private lateinit var tvTotalSummary: TextView // Asumo que tienes un TextView para el total
+    private lateinit var tvTotalSummary: TextView
 
     private lateinit var cartAdapter: CartAdapter
     private var currentProducts = listOf<ProductModel>()
     private var currentQuantities = mapOf<String, Int>()
     private var totalAmount: Double = 0.0
 
+    // 🟢 NUEVO: Variable para el ID del usuario
+    private var currentUserId: Int = -1
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_cart)
 
+        // 1. OBTENER ID DEL USUARIO (Vital para guardar en el archivo correcto)
+        val prefs = getSharedPreferences("markettec_prefs", Context.MODE_PRIVATE)
+        currentUserId = prefs.getInt("current_user_id", -1)
+
         rvCartProducts = findViewById(R.id.rvCartProducts)
         btnOrder = findViewById(R.id.btnOrder)
         tvEmptyCart = findViewById(R.id.tvEmptyCart)
-        // Si no tienes este ID en el XML, se lo puedes asignar a otro TextView o al botón mismo.
         tvTotalSummary = findViewById(R.id.tvTotalSummary)
 
         setupRecyclerView()
@@ -48,11 +54,10 @@ class CartActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        loadCartItems() // Recargar cada vez que la Activity vuelve al frente
+        loadCartItems()
     }
 
     private fun setupRecyclerView() {
-        // Inicialización del adapter con todos los handlers
         cartAdapter = CartAdapter(
             products = emptyList(),
             quantities = emptyMap(),
@@ -65,7 +70,6 @@ class CartActivity : AppCompatActivity() {
                 }
                 startActivity(intent)
             },
-            // Listener crucial para actualizar el total cuando se selecciona/deselecciona un item
             onSelectionChange = { _, _ -> updateSummary() }
         )
         rvCartProducts.layoutManager = LinearLayoutManager(this)
@@ -73,7 +77,8 @@ class CartActivity : AppCompatActivity() {
     }
 
     private fun loadCartItems() {
-        // 1. Leer el mapa de IDs y cantidades del teléfono
+        // Cargar mapa del carrito (Este sigue siendo global o por dispositivo,
+        // aunque idealmente también debería ser por usuario si quisieras carrito en la nube)
         val cartMap = loadCartMapFromPrefs(this)
         currentQuantities = cartMap
         val cartIds = cartMap.keys
@@ -83,7 +88,6 @@ class CartActivity : AppCompatActivity() {
             return
         }
 
-        // 2. Descargar TODOS los productos de la API para filtrar
         lifecycleScope.launch(Dispatchers.IO) {
             try {
                 val response = RetrofitClient.instance.getProducts()
@@ -92,7 +96,6 @@ class CartActivity : AppCompatActivity() {
                     if (response.isSuccessful) {
                         val allApiProducts = response.body() ?: emptyList()
 
-                        // 3. Filtrar: Solo los productos cuyos IDs están en nuestro carrito
                         currentProducts = allApiProducts.filter { product ->
                             cartIds.contains(product.id.toString())
                         }
@@ -102,10 +105,10 @@ class CartActivity : AppCompatActivity() {
                         } else {
                             showCartState()
                             cartAdapter.updateData(currentProducts, currentQuantities)
-                            updateSummary() // Actualizar el total por primera vez
+                            updateSummary()
                         }
                     } else {
-                        Toast.makeText(this@CartActivity, "Error al cargar productos del catálogo", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(this@CartActivity, "Error al cargar productos", Toast.LENGTH_SHORT).show()
                         showEmptyState()
                     }
                 }
@@ -119,7 +122,6 @@ class CartActivity : AppCompatActivity() {
     }
 
     private fun updateSummary() {
-        // Obtenemos la lista de productos seleccionados y sus cantidades desde el adaptador
         val selectedItems = cartAdapter.getSelectedProductsForOrder()
 
         var newTotal = 0.0
@@ -152,23 +154,26 @@ class CartActivity : AppCompatActivity() {
         val selectedItems = cartAdapter.getSelectedProductsForOrder()
 
         if (selectedItems.isEmpty()) {
-            Toast.makeText(this, "Selecciona al menos un producto para ordenar.", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Selecciona al menos un producto.", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        if (currentUserId == -1) {
+            Toast.makeText(this, "Debes iniciar sesión para comprar.", Toast.LENGTH_LONG).show()
             return
         }
 
         AlertDialog.Builder(this)
             .setTitle("Confirmar Compra")
-            .setMessage("Se van a ordenar producto(s) por un total de $${String.format("%.2f", totalAmount)}. ¿Confirmas la compra?")
-            .setPositiveButton("Sí, ordenar") { dialog, _ ->
+            .setMessage("Total a pagar: $${String.format("%.2f", totalAmount)}\n\n¿Deseas confirmar el pedido?")
+            .setPositiveButton("Sí, comprar") { dialog, _ ->
 
-                // LÓGICA DE COMPRA (Mandar a API o guardar historial local)
-                // Por ahora, solo guardamos el historial local y limpiamos el carrito
-
+                // Guardar en el historial DEL USUARIO ACTUAL
                 savePurchaseHistory(selectedItems)
 
-                Toast.makeText(this, "¡Compra exitosa! 🎉", Toast.LENGTH_LONG).show()
+                Toast.makeText(this, "¡Compra realizada con éxito!", Toast.LENGTH_LONG).show()
                 dialog.dismiss()
-                loadCartItems() // Recargamos para mostrar el carrito vacío/actualizado
+                loadCartItems() // Recargar para limpiar lo comprado
             }
             .setNegativeButton("Cancelar", null)
             .show()
@@ -180,13 +185,13 @@ class CartActivity : AppCompatActivity() {
 
         if (cartMap.remove(idString) != null) {
             saveCartMapToPrefs(this, cartMap)
-            Toast.makeText(this, "Producto eliminado", Toast.LENGTH_SHORT).show()
-            loadCartItems() // Recargar la lista
+            Toast.makeText(this, "Producto eliminado del carrito", Toast.LENGTH_SHORT).show()
+            loadCartItems()
         }
     }
 
-    // Lógica para guardar la compra en Historial (Similar a la que tenías)
     private fun savePurchaseHistory(itemsBought: List<Pair<ProductModel, Int>>) {
+        // Cargar historial existente DE ESTE USUARIO
         val existingPurchases = loadPurchasesMapFromPrefs(this).toMutableMap()
 
         itemsBought.forEach { (product, quantity) ->
@@ -195,9 +200,10 @@ class CartActivity : AppCompatActivity() {
             existingPurchases[idString] = oldQuantity + quantity
         }
 
+        // Guardar actualizado EN EL ARCHIVO DE ESTE USUARIO
         savePurchasesMapToPrefs(this, existingPurchases)
 
-        // Limpiamos los ítems comprados del carrito
+        // Limpiar del carrito (El carrito sigue siendo global por ahora en tu lógica)
         val currentCartMap = loadCartMapFromPrefs(this).toMutableMap()
         itemsBought.forEach { (product, _) ->
             currentCartMap.remove(product.id.toString())
@@ -218,7 +224,7 @@ class CartActivity : AppCompatActivity() {
         btnOrder.isEnabled = totalAmount > 0
     }
 
-    // --- UTILS DE PREFERENCIAS (Necesarias para la lógica) ---
+    // --- UTILS DE PREFERENCIAS ---
 
     private fun saveCartMapToPrefs(context: Context, cartMap: Map<String, Int>) {
         val prefs = context.getSharedPreferences("cart_items", Context.MODE_PRIVATE)
@@ -243,14 +249,18 @@ class CartActivity : AppCompatActivity() {
         return map
     }
 
+    // 🟢 AQUÍ ESTÁ EL CAMBIO IMPORTANTE: Guardar con nombre dinámico
     private fun savePurchasesMapToPrefs(context: Context, purchasesMap: Map<String, Int>) {
-        val prefs = context.getSharedPreferences("my_purchases", Context.MODE_PRIVATE)
+        val prefsName = "my_purchases_$currentUserId"
+        val prefs = context.getSharedPreferences(prefsName, Context.MODE_PRIVATE)
         val serializedMap = purchasesMap.entries.joinToString(";") { "${it.key}:${it.value}" }
         prefs.edit().putString("purchases_map", serializedMap).apply()
     }
 
+    // 🟢 AQUÍ TAMBIÉN: Cargar con nombre dinámico
     private fun loadPurchasesMapFromPrefs(context: Context): Map<String, Int> {
-        val prefs = context.getSharedPreferences("my_purchases", Context.MODE_PRIVATE)
+        val prefsName = "my_purchases_$currentUserId"
+        val prefs = context.getSharedPreferences(prefsName, Context.MODE_PRIVATE)
         val serializedMap = prefs.getString("purchases_map", "") ?: ""
         if (serializedMap.isEmpty()) return emptyMap()
 

@@ -4,23 +4,24 @@ import com.google.gson.annotations.SerializedName
 import java.io.Serializable
 
 /**
- * Modelo de datos para la información del vendedor (Vendor) asociado a un producto.
- * Ahora incluye nombre + apellido para mostrar el nombre completo.
+ * Modelo de datos para la información del vendedor.
+ * IMPORTANTE: La clase se llama VendorModel para coincidir con ProductModel.
  */
-data class Vendor(
-    // Nombre del vendedor → viene como "first_name" en el JSON
+/*data class VendorModel(
+    // 👇 VITAL: ID del vendedor con valor por defecto 0
+    // Esto permite que la app lea el ID si viene, o use 0 si no viene, sin crashear.
+    @SerializedName("id")
+    val id: Int = 0,
+
     @SerializedName("first_name")
     val firstName: String?,
 
-    // Apellido del vendedor → viene como "last_name" en el JSON
     @SerializedName("last_name")
     val lastName: String?,
 
-    // URL de la foto de perfil → viene como "profile_image"
     @SerializedName("profile_image")
     val profileImage: String?,
 
-    // Carrera del estudiante → viene como "career"
     @SerializedName("career")
     val career: String?
-) : Serializable
+) : Serializable*/

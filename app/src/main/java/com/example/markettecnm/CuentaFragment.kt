@@ -2,46 +2,33 @@ package com.example.markettecnm
 
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.ImageView
 import android.widget.TextView
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
+import com.bumptech.glide.Glide // 👈 Necesario para cargar la URL del servidor
 import com.google.android.material.floatingactionbutton.FloatingActionButton
+import com.example.markettecnm.network.RetrofitClient
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class CuentaFragment : Fragment() {
 
     private lateinit var imgAvatar: ImageView
     private lateinit var fabChangePhoto: FloatingActionButton
-
     private lateinit var textNombre: TextView
     private lateinit var textCorreo: TextView
     private lateinit var btnEditarPerfil: Button
 
     private val sessionPrefs by lazy {
         requireContext().getSharedPreferences("markettec_prefs", Context.MODE_PRIVATE)
-    }
-
-    private val avatarPrefs by lazy {
-        requireContext().getSharedPreferences("account_prefs", Context.MODE_PRIVATE)
-    }
-
-    private val pickImage = registerForActivityResult(
-        ActivityResultContracts.OpenDocument()
-    ) { uri: Uri? ->
-        if (uri != null) {
-            requireContext().contentResolver.takePersistableUriPermission(
-                uri,
-                Intent.FLAG_GRANT_READ_URI_PERMISSION
-            )
-            saveAvatarUri(uri)
-            imgAvatar.setImageURI(uri)
-        }
     }
 
     override fun onCreateView(
@@ -54,34 +41,67 @@ class CuentaFragment : Fragment() {
         // 1. Inicialización de Vistas
         imgAvatar = view.findViewById(R.id.imgAvatar)
         fabChangePhoto = view.findViewById(R.id.fabChangePhoto)
-
         textNombre = view.findViewById(R.id.textNombre)
         textCorreo = view.findViewById(R.id.textCorreo)
         btnEditarPerfil = view.findViewById(R.id.btnEditarPerfil)
 
-        // 2. Cargar la imagen del avatar guardada (si existe)
-        loadSavedAvatar()?.let { uri ->
-            imgAvatar.setImageURI(uri)
+        // 2. Configurar Botones
+        setupListeners(view)
+
+        // Nota: Ya no cargamos datos aquí, lo hacemos en onResume para que se actualice al volver
+    }
+
+    // 🟢 CLAVE: Usamos onResume para recargar los datos cada vez que la pantalla se muestra.
+    // Así, si vuelves de "Editar Perfil", la foto nueva aparecerá automáticamente.
+    override fun onResume() {
+        super.onResume()
+        fetchUserProfile()
+    }
+
+    private fun fetchUserProfile() {
+        // Usamos lifecycleScope del view para seguridad
+        viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
             try {
-                requireContext().contentResolver.takePersistableUriPermission(
-                    uri, Intent.FLAG_GRANT_READ_URI_PERMISSION
-                )
-            } catch (_: Exception) { }
+                val response = RetrofitClient.instance.getMyProfile()
+
+                withContext(Dispatchers.Main) {
+                    if (response.isSuccessful && response.body() != null) {
+                        val userProfile = response.body()!!
+
+                        // 1. Actualizar Textos
+                        textNombre.text = userProfile.firstName ?: "Usuario"
+                        textCorreo.text = userProfile.email
+
+                        // 2. Actualizar Foto con Glide (Desde el servidor)
+                        val imageUrl = userProfile.profile?.profileImage
+
+                        if (!imageUrl.isNullOrEmpty()) {
+                            Glide.with(this@CuentaFragment)
+                                .load(imageUrl)
+                                .placeholder(android.R.drawable.ic_menu_camera) // Mientras carga
+                                .error(android.R.drawable.ic_menu_camera)       // Si falla
+                                .circleCrop() // Recorte circular
+                                .into(imgAvatar)
+                        } else {
+                            // Si no hay foto, poner default
+                            imgAvatar.setImageResource(android.R.drawable.ic_menu_camera)
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("CUENTA", "Error al cargar perfil", e)
+            }
         }
+    }
 
-        // 3. Mostrar nombre y correo de la sesión actual
-        displayUserInfo()
-
-        // 4. Listeners
-
+    private fun setupListeners(view: View) {
+        // El botón flotante ahora también lleva a Editar Perfil (Mejor UX)
         fabChangePhoto.setOnClickListener {
-            pickImage.launch(arrayOf("image/*"))
+            startActivity(Intent(requireContext(), EditarPerfilActivity::class.java))
         }
 
         btnEditarPerfil.setOnClickListener {
-            // FIX: Usamos el nombre simple para evitar el error de ruta si el import falla.
-            val intent = Intent(requireContext(), EditarPerfilActivity::class.java)
-            startActivity(intent)
+            startActivity(Intent(requireContext(), EditarPerfilActivity::class.java))
         }
 
         // ======= Apartados interactivos de la lista =======
@@ -89,7 +109,6 @@ class CuentaFragment : Fragment() {
             startActivity(Intent(requireContext(), MisComprasActivity::class.java))
         }
 
-        // 🛑 CORRECCIÓN CLAVE: AGREGAR EL LISTENER DE MIS VENTAS
         view.findViewById<View>(R.id.rowMisVentas).setOnClickListener {
             startActivity(Intent(requireContext(), MisVentasActivity::class.java))
         }
@@ -107,33 +126,21 @@ class CuentaFragment : Fragment() {
         }
 
         view.findViewById<View>(R.id.rowLogout).setOnClickListener {
-            // Limpiar datos de sesión y avatar
-            sessionPrefs.edit().clear().apply()
-            avatarPrefs.edit().clear().apply()
-
-            // Regresar al login
-            val i = Intent(requireContext(), MainActivity::class.java)
-            i.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-            startActivity(i)
+            logout()
         }
     }
 
-    // Función para leer y mostrar los datos del perfil
-    private fun displayUserInfo() {
-        val name = sessionPrefs.getString("current_user_first_name", "Invitado")
-        val loginId = sessionPrefs.getString("username", "Sin sesión")
+    private fun logout() {
+        // Limpiar datos de sesión
+        sessionPrefs.edit().clear().apply()
 
-        textNombre.text = name
-        textCorreo.text = loginId
-    }
+        // Limpiar caché de imágenes de Glide (Opcional pero recomendado al salir)
+        Thread { Glide.get(requireContext()).clearDiskCache() }.start()
+        Glide.get(requireContext()).clearMemory()
 
-    // Funciones auxiliares
-    private fun saveAvatarUri(uri: Uri) {
-        avatarPrefs.edit().putString("avatar_uri", uri.toString()).apply()
-    }
-
-    private fun loadSavedAvatar(): Uri? {
-        val s = avatarPrefs.getString("avatar_uri", null) ?: return null
-        return Uri.parse(s)
+        // Regresar al login
+        val i = Intent(requireContext(), MainActivity::class.java)
+        i.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        startActivity(i)
     }
 }

@@ -2,6 +2,7 @@ package com.example.markettecnm.network
 
 import com.google.gson.annotations.SerializedName
 import com.example.markettecnm.models.ProductModel
+import java.io.Serializable
 
 // ======================================================================
 // DTOs DE AUTENTICACIÓN Y BASE
@@ -61,7 +62,14 @@ data class ProfileDetail(
     val career: String?,
     @SerializedName("date_of_birth") val dateOfBirth: String?,
     @SerializedName("profile_image") val profileImage: String?,
-    val role: String?
+    val role: String?,
+
+    // 👇 AQUÍ AGREGAMOS LOS CAMPOS DE BANEO 👇
+    @SerializedName("is_banned")
+    val isBanned: Boolean? = false,
+
+    @SerializedName("ban_reason")
+    val banReason: String? = null
 )
 
 // 2. MODELO PRINCIPAL DE PERFIL (Respuesta del GET /api/users/profile/)
@@ -84,14 +92,22 @@ data class UserProfileUpdate(
     val password: String?
 )
 
-// 4. VENDOR MODEL (Usado en ProductModel como un objeto DTO simple)
+// 4. VENDOR MODEL (Actualizado para el CHAT)
 data class VendorModel(
+    @SerializedName("id")
+    val id: Int = 0,
+
     @SerializedName("first_name")
     val firstName: String? = null,
+
+    @SerializedName("last_name")
+    val lastName: String? = null,
+
     @SerializedName("profile_image")
     val profileImage: String? = null,
+
     val career: String? = null
-)
+) : Serializable
 
 // ======================================================================
 // DTOs DE CARRITO Y RESEÑAS

@@ -1,5 +1,6 @@
 package com.example.markettecnm.models
 
+import com.example.markettecnm.network.VendorModel
 import com.google.gson.annotations.SerializedName
 import java.io.Serializable  // ← Import correcto
 
@@ -13,7 +14,7 @@ data class ProductDetailModel(
     @SerializedName("price") val price: String,
     @SerializedName("inventory") val inventory: Int,
     @SerializedName("status") val status: String,
-    @SerializedName("vendor") val vendor: Vendor?,  // ← Apunta a la clase Vendor de abajo
+    @SerializedName("vendor") val vendor: VendorModel?,  // ← Apunta a la clase Vendor de abajo
     @SerializedName("category_name") val categoryName: String,
     @SerializedName("product_image") val productImage: String? = null
 )

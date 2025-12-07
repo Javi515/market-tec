@@ -1,6 +1,5 @@
 package com.example.markettecnm.network
 
-import com.example.markettecnm.models.*
 import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
@@ -8,13 +7,25 @@ import retrofit2.http.*
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
 import okhttp3.OkHttpClient
-import java.util.concurrent.TimeUnit // 🛠️ IMPORT NECESARIO
+import java.util.concurrent.TimeUnit
+
+// 👇 IMPORTS EXPLÍCITOS (Correctos y completos)
+import com.example.markettecnm.models.ProductModel
+import com.example.markettecnm.models.CategoryModel
+import com.example.markettecnm.models.ReviewModel
+import com.example.markettecnm.models.UserProfile
+import com.example.markettecnm.models.UserProfileUpdate
+import com.example.markettecnm.models.ChatResponse
+import com.example.markettecnm.models.MessageRequest
+import com.example.markettecnm.models.MessageResponse
+
+// Nota: LoginRequestBody, TokenResponse, etc. siguen en este paquete (network).
 
 const val BASE_URL = "http://172.200.235.24/"
 
 interface ApiService {
 
-    // ========== PRODUCTOS, BÚSQUEDA Y CATEGORÍAS ==========
+    // ========== 1. PRODUCTOS Y CATEGORÍAS ==========
 
     @GET("api/products/")
     suspend fun getProducts(): Response<List<ProductModel>>
@@ -22,14 +33,12 @@ interface ApiService {
     @GET("api/products/{id}/")
     suspend fun getProductDetail(@Path("id") productId: Int): Response<ProductModel>
 
-    // BÚSQUEDA
     @GET("api/products/")
     suspend fun searchProducts(@Query("q") query: String): Response<List<ProductModel>>
 
     @GET("api/categories/")
     suspend fun getCategories(): Response<List<CategoryModel>>
 
-    // CREAR PRODUCTO
     @Multipart
     @POST("api/products/")
     suspend fun createProduct(
@@ -37,7 +46,6 @@ interface ApiService {
         @Part image: MultipartBody.Part?
     ): Response<ProductModel>
 
-    // ACTUALIZAR PRODUCTO
     @Multipart
     @PATCH("api/products/{id}/")
     suspend fun updateProduct(
@@ -49,12 +57,23 @@ interface ApiService {
     @DELETE("api/products/{id}/")
     suspend fun deleteProduct(@Path("id") productId: Int): Response<Unit>
 
-    // ================== PERFIL Y AUTENTICACIÓN ==================
+    // ================== 2. PERFIL Y AUTENTICACIÓN ==================
+
     @GET("api/users/profile/")
     suspend fun getMyProfile(): Response<UserProfile>
 
     @PATCH("api/users/profile/")
     suspend fun updateProfile(@Body request: UserProfileUpdate): Response<UserProfile>
+
+    // Método vital para subir la foto de perfil (EditarPerfilActivity)
+    @Multipart
+    @PATCH("api/users/profile/")
+    suspend fun updateProfileImage(
+        @Part image: MultipartBody.Part
+    ): Response<UserProfile>
+
+    @GET("api/users/{id}/")
+    suspend fun getUserById(@Path("id") userId: Int): Response<UserProfile>
 
     @GET("api/favorites/")
     suspend fun getFavorites(): Response<List<FavoriteResponse>>
@@ -68,7 +87,8 @@ interface ApiService {
     @POST("api/register/")
     suspend fun registerUser(@Body requestBody: RegistrationRequestBody): Response<RegistrationResponse>
 
-    // ================== RESEÑAS ==================
+    // ================== 3. RESEÑAS ==================
+
     @GET("api/reviews/")
     suspend fun getReviews(): Response<List<ReviewModel>>
 
@@ -83,12 +103,28 @@ interface ApiService {
 
     @DELETE("api/reviews/{id}/")
     suspend fun deleteReview(@Path("id") reviewId: Int): Response<Unit>
+
+    // ================== 4. SISTEMA DE CHAT (CORREGIDO) ==================
+
+    // ESTRATEGIA HÍBRIDA:
+    // @Query: Envía target_user_id en la URL (Requisito de la API).
+    // @Body: Envía un mapa de String,String (Requisito para el dummy body).
+    @POST("api/chat/start_chat/")
+    suspend fun startChat(
+        @Query("target_user_id") targetUserId: Int,
+        @Body dummyBody: Map<String, String>
+    ): Response<ChatResponse>
+
+    @GET("api/messages/")
+    suspend fun getMessages(@Query("conversation") conversationId: Int): Response<List<MessageResponse>>
+
+    @POST("api/messages/")
+    suspend fun sendMessage(@Body request: MessageRequest): Response<MessageResponse>
 }
 
 object RetrofitClient {
 
     private val okHttpClient: OkHttpClient = OkHttpClient.Builder()
-        // 🛠️ CORRECCIÓN CLAVE: Aumentar el tiempo de espera a 30 segundos
         .connectTimeout(30, TimeUnit.SECONDS)
         .readTimeout(30, TimeUnit.SECONDS)
         .writeTimeout(30, TimeUnit.SECONDS)

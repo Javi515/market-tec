@@ -58,11 +58,7 @@ class HomeActivity : AppCompatActivity() {
                 searchBar.visibility = View.VISIBLE
                 searchEditText.hint = "Buscar productos..."
             }
-            "categorias" -> {
-                iconCategorias.isSelected = true; labelCategorias.isSelected = true
-                searchBar.visibility = View.VISIBLE
-                searchEditText.hint = "Buscar categorías..."
-            }
+
             "cuenta" -> {
                 iconCuenta.isSelected = true; labelCuenta.isSelected = true
                 searchBar.visibility = View.GONE

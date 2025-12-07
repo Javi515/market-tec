@@ -13,7 +13,8 @@ import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.markettecnm.R
 import com.example.markettecnm.adapters.CategoryAdapter
-import com.example.markettecnm.network.CategoryModel
+// 🛑 IMPORTANTE: Usamos 'models' porque ahí unificamos CategoryModel
+import com.example.markettecnm.models.CategoryModel
 import com.example.markettecnm.network.RetrofitClient
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -41,9 +42,10 @@ class CategoriesFragment : Fragment() {
 
     private fun setupRecyclerView() {
         categoryAdapter = CategoryAdapter(
-            categories = emptyList<CategoryModel>(),
+            // 💡 CAMBIO: Quitamos <CategoryModel> como pediste, Kotlin lo infiere.
+            categories = emptyList(),
             onItemClick = { category ->
-                // 🛑 CORRECCIÓN CLAVE: Llama a la Activity dedicada a la categoría
+                // Mantenemos la lógica de abrir por nombre
                 openCategoryResults(category.name)
             }
         )
@@ -53,15 +55,13 @@ class CategoriesFragment : Fragment() {
         rvCategoryList.adapter = categoryAdapter
     }
 
-    // 💡 FUNCIÓN CORREGIDA: Navegación a ResultadoCategoriaActivity
+    // Navegación a ResultadoCategoriaActivity por nombre
     private fun openCategoryResults(categoryName: String) {
         val intent = Intent(requireContext(), ResultadoCategoriaActivity::class.java).apply {
-            // Usamos la clave 'category_name' que la nueva Activity está esperando
             putExtra("category_name", categoryName)
         }
         startActivity(intent)
     }
-
 
     private fun fetchCategories() {
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
@@ -70,7 +70,8 @@ class CategoriesFragment : Fragment() {
 
                 withContext(Dispatchers.Main) {
                     if (response.isSuccessful) {
-                        val categories = response.body() ?: emptyList<CategoryModel>()
+                        // 💡 CAMBIO: Simplificado a emptyList()
+                        val categories = response.body() ?: emptyList()
                         categoryAdapter.updateCategories(categories)
                     } else {
                         Log.e("API_CALL", "Error Cat: ${response.code()}")

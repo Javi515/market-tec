@@ -40,8 +40,17 @@ class ResultadosActivity : AppCompatActivity() {
 
         // Obtener el texto buscado
         val query = intent.getStringExtra("query") ?: ""
+
+        // --- CAMBIO 1: Validación inicial ---
         if (query.isBlank()) {
             textResultados.text = "Búsqueda vacía"
+            showNoResults()
+            return
+        }
+
+        // Si la búsqueda es muy corta (1 letra), avisamos y no buscamos
+        if (query.trim().length < 2) {
+            textResultados.text = "Escribe al menos 2 letras para buscar"
             showNoResults()
             return
         }
@@ -52,38 +61,35 @@ class ResultadosActivity : AppCompatActivity() {
         searchProductsAndFilterLocally(query.trim())
     }
 
-    // 🛑 FUNCIÓN ÚNICA: Obtiene el catálogo completo y filtra en el cliente
+    // 🛑 FUNCIÓN ÚNICA: Filtro por INICIO DE PALABRA (Word Boundary)
     private fun searchProductsAndFilterLocally(query: String) {
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                // 1. OBTENER TODO el catálogo (Workaround para el bug de API)
+                // 1. OBTENER TODO el catálogo
                 val response = RetrofitClient.instance.getProducts()
 
                 withContext(Dispatchers.Main) {
                     if (response.isSuccessful) {
                         val allProducts = response.body() ?: emptyList()
 
-                        // 2. FILTRADO LOCAL: Compara la query contra Nombre, Descripción y Categoría
-                        val filtered = allProducts.filter {
-                            // 💡 Lógica de filtro: Si contiene la palabra en Name, Description, O CategoryName
-                            it.name.contains(query, ignoreCase = true) ||
-                                    it.description.contains(query, ignoreCase = true) ||
-                                    it.categoryName.contains(query, ignoreCase = true)
+                        // --- CAMBIO 2: FILTRADO ESTRICTO ---
+                        val filtered = allProducts.filter { product ->
+                            // Paso A: Dividir el nombre en palabras
+                            // Ej: "Lavadora Samsung 20kg" -> ["Lavadora", "Samsung", "20kg"]
+                            val words = product.name.split(" ")
+
+                            // Paso B: Verificar si ALGUNA palabra empieza con la query
+                            words.any { word ->
+                                word.startsWith(query, ignoreCase = true)
+                            }
                         }
 
-                        // 3. ORDENAMIENTO: Priorizamos los productos cuya coincidencia sea en el Nombre.
-                        val sortedResults = filtered.sortedByDescending {
-                            // Devuelve true si el nombre CONTIENE la query, dándole mayor peso (aparece primero).
-                            it.name.contains(query, ignoreCase = true)
-                        }
-
-
-                        if (sortedResults.isEmpty()) {
+                        if (filtered.isEmpty()) {
                             textResultados.text = "No se encontraron resultados para \"$query\""
                             showNoResults()
                         } else {
-                            textResultados.text = "Resultados para \"$query\" (${sortedResults.size})"
-                            showResults(sortedResults)
+                            textResultados.text = "Resultados para \"$query\" (${filtered.size})"
+                            showResults(filtered)
                         }
                     } else {
                         Toast.makeText(this@ResultadosActivity, "Error al cargar productos", Toast.LENGTH_SHORT).show()
@@ -99,7 +105,6 @@ class ResultadosActivity : AppCompatActivity() {
             }
         }
     }
-
 
     private fun showResults(products: List<ProductModel>) {
         textNoResultados.visibility = View.GONE

@@ -14,8 +14,6 @@ import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
-import com.example.markettecnm.network.CategoryModel // Necesario para obtener el ID
-import com.example.markettecnm.network.RetrofitClient
 import com.google.android.material.textfield.TextInputEditText
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -27,6 +25,10 @@ import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.File
 import java.io.FileOutputStream
+
+// 👇 IMPORTANTE: Usamos el modelo unificado de la carpeta 'models'
+import com.example.markettecnm.models.CategoryModel
+import com.example.markettecnm.network.RetrofitClient
 
 class VenderActivity : AppCompatActivity() {
 
@@ -43,9 +45,9 @@ class VenderActivity : AppCompatActivity() {
 
     // State
     private var selectedImageUri: Uri? = null
-    // [1] State 1: Lista de nombres para el Dropdown
+    // Lista de nombres para el Dropdown
     private var availableCategoryNames = listOf<String>()
-    // [2] State 2: Mapa para obtener el ID al momento de publicar
+    // Mapa para obtener el ID al momento de publicar (Nombre -> ID)
     private var categoryIdMap: Map<String, Int> = emptyMap()
 
 
@@ -55,10 +57,14 @@ class VenderActivity : AppCompatActivity() {
     ) { uri: Uri? ->
         if (uri != null) {
             selectedImageUri = uri
-            contentResolver.takePersistableUriPermission(
-                uri,
-                Intent.FLAG_GRANT_READ_URI_PERMISSION
-            )
+            try {
+                contentResolver.takePersistableUriPermission(
+                    uri,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION
+                )
+            } catch (e: Exception) {
+                // Ignoramos si falla el permiso persistente, la imagen se usará al momento
+            }
             ivProductImage.scaleType = ImageView.ScaleType.CENTER_CROP
             ivProductImage.setImageURI(uri)
             tvSelectImage.visibility = View.GONE
@@ -67,7 +73,6 @@ class VenderActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // 💡 CORRECCIÓN: Usar el nombre de layout correcto
         setContentView(R.layout.vender)
 
         supportActionBar?.title = "Publicar Venta"
@@ -103,13 +108,14 @@ class VenderActivity : AppCompatActivity() {
         }
     }
 
-    // 🛑 CORRECCIÓN: Cargar y Mapear ID de Categoría
+    // Cargar y Mapear ID de Categoría
     private fun loadCategories() {
         lifecycleScope.launch(Dispatchers.IO) {
             try {
                 val response = RetrofitClient.instance.getCategories()
                 if (response.isSuccessful) {
-                    val categories = response.body() ?: emptyList<CategoryModel>()
+                    // Aquí usamos el CategoryModel correcto, por lo que .name y .id funcionan
+                    val categories = response.body() ?: emptyList()
 
                     // Almacenamos un mapa Nombre -> ID
                     categoryIdMap = categories.associate { it.name to it.id }
@@ -144,7 +150,7 @@ class VenderActivity : AppCompatActivity() {
         val inventory = etProductInventory.text.toString().trim()
         val categoryName = actvCategory.text.toString().trim()
 
-        // 💡 OBTENEMOS EL ID DE LA CATEGORÍA A PARTIR DEL NOMBRE
+        // Obtenemos el ID de la categoría a partir del nombre
         val categoryId = categoryIdMap[categoryName]
 
         if (name.isEmpty() || price.isEmpty() || inventory.isEmpty() || categoryId == null || selectedImageUri == null) {
@@ -162,7 +168,6 @@ class VenderActivity : AppCompatActivity() {
         publishProduct(name, etProductDescription.text.toString().trim(), price, inventory, categoryId)
     }
 
-    // 🛑 CORRECCIÓN CLAVE: El DTO de publicación ahora recibe el ID (Int)
     private fun publishProduct(name: String, description: String, price: String, inventory: String, categoryId: Int) {
         lifecycleScope.launch(Dispatchers.IO) {
             var imagePart: MultipartBody.Part? = null
@@ -174,7 +179,9 @@ class VenderActivity : AppCompatActivity() {
                     val requestFile = file.asRequestBody("image/*".toMediaTypeOrNull())
                     imagePart = MultipartBody.Part.createFormData("product_image", file.name, requestFile)
                 } catch (e: Exception) {
-                    // ... (manejo de error) ...
+                    withContext(Dispatchers.Main) {
+                        showError("Error al procesar la imagen.")
+                    }
                     return@launch
                 }
             }
@@ -185,7 +192,7 @@ class VenderActivity : AppCompatActivity() {
             params["description"] = description.toRequestBody("text/plain".toMediaTypeOrNull())
             params["price"] = price.toRequestBody("text/plain".toMediaTypeOrNull())
             params["inventory"] = inventory.toRequestBody("text/plain".toMediaTypeOrNull())
-            // 🛑 CAMBIO CLAVE: Enviamos el ID bajo la clave "category"
+            // Enviamos el ID bajo la clave "category" (como espera Django)
             params["category"] = categoryId.toString().toRequestBody("text/plain".toMediaTypeOrNull())
 
             // 3. Llamada a la API

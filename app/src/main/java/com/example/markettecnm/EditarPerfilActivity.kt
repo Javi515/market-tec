@@ -1,25 +1,35 @@
 package com.example.markettecnm
 
 import android.app.DatePickerDialog
+import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.util.Log
 import android.widget.Button
-import android.content.Context
-import android.widget.EditText
+import android.widget.ImageView // 👈 Importante
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts // 👈 Importante
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
+import com.bumptech.glide.Glide // 👈 Para mostrar la imagen
 import com.example.markettecnm.network.RetrofitClient
 import com.google.android.material.textfield.TextInputEditText
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-// 👇 FIX: Imports necesarios para los DTOs de Perfil
-import com.example.markettecnm.network.UserProfile
-import com.example.markettecnm.network.UserProfileUpdate
-import com.example.markettecnm.network.ProfileDetail
+// Imports de modelos
+import com.example.markettecnm.models.UserProfile
+import com.example.markettecnm.models.UserProfileUpdate
+import com.example.markettecnm.models.ProfileUpdateData
+
+// Imports para subir imagen
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.asRequestBody
+import java.io.File
+import java.io.FileOutputStream
 import java.util.Calendar
 import java.util.Locale
 
@@ -33,7 +43,23 @@ class EditarPerfilActivity : AppCompatActivity() {
     private lateinit var etPassword: TextInputEditText
     private lateinit var btnSaveProfile: Button
 
+    // 👇 UI de Imagen
+    private lateinit var ivProfileImage: ImageView
+    private var selectedImageUri: Uri? = null
+
     private var currentUserId: Int = -1
+
+    // 👇 Selector de Imagen de la Galería
+    private val pickImage = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
+        if (uri != null) {
+            selectedImageUri = uri
+            // Mostrar visualmente la imagen seleccionada
+            Glide.with(this)
+                .load(uri)
+                .circleCrop()
+                .into(ivProfileImage)
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -56,16 +82,20 @@ class EditarPerfilActivity : AppCompatActivity() {
         etPassword = findViewById(R.id.etPassword)
         btnSaveProfile = findViewById(R.id.btnSaveProfile)
 
-        // Bloquear edición de correo
-        etEmail.isEnabled = false
+        // 👇 Asegúrate de tener este ID en tu XML
+        ivProfileImage = findViewById(R.id.ivProfileImage)
     }
 
     private fun setupListeners() {
         btnSaveProfile.setOnClickListener { attemptSaveProfile() }
 
-        // Selector de Fecha
         etDateOfBirth.setOnClickListener { showDatePicker() }
         etDateOfBirth.setOnFocusChangeListener { _, hasFocus -> if (hasFocus) showDatePicker() }
+
+        // 👇 Clic en la imagen abre la galería
+        ivProfileImage.setOnClickListener {
+            pickImage.launch("image/*")
+        }
     }
 
     private fun loadProfileData() {
@@ -91,17 +121,24 @@ class EditarPerfilActivity : AppCompatActivity() {
     }
 
     private fun bindData(profile: UserProfile) {
-        currentUserId = profile.id // Guardar ID
+        currentUserId = profile.id
 
-        // FIX: El email ahora se resuelve gracias a la importación y definición en DataModels.kt
         etEmail.setText(profile.email)
         etFullName.setText(profile.firstName)
 
-        // FIX: Acceso al campo anidado 'profile' (donde está el teléfono/carrera/fecha)
         profile.profile?.let { details ->
             etPhoneNumber.setText(details.phoneNumber)
             etCareer.setText(details.career)
             etDateOfBirth.setText(details.dateOfBirth)
+
+            // 👇 Cargar la imagen actual del servidor
+            if (!details.profileImage.isNullOrEmpty()) {
+                Glide.with(this)
+                    .load(details.profileImage)
+                    .placeholder(android.R.drawable.ic_menu_camera)
+                    .circleCrop()
+                    .into(ivProfileImage)
+            }
         }
     }
 
@@ -140,47 +177,111 @@ class EditarPerfilActivity : AppCompatActivity() {
         btnSaveProfile.isEnabled = false
         btnSaveProfile.text = "Guardando..."
 
-        val updateRequest = UserProfileUpdate(
-            firstName = newFullName,
+        // 1. Preparar datos de Texto (Anidados)
+        val profileData = ProfileUpdateData(
             phoneNumber = newPhoneNumber,
             dateOfBirth = newDateOfBirth,
-            password = if (newPassword.isNotEmpty()) newPassword else null,
-            email = null, // Email no se actualiza por aquí
+            career = newCareer
         )
 
-        saveProfile(updateRequest)
+        val updateRequest = UserProfileUpdate(
+            firstName = newFullName,
+            email = null,
+            password = if (newPassword.isNotEmpty()) newPassword else null,
+            profile = profileData
+        )
+
+        // 2. Iniciar secuencia de guardado
+        saveProfileText(updateRequest)
     }
 
-    private fun saveProfile(updateRequest: UserProfileUpdate) {
+    // PASO 1: Guardar Texto
+    private fun saveProfileText(updateRequest: UserProfileUpdate) {
         lifecycleScope.launch(Dispatchers.IO) {
             try {
                 val response = RetrofitClient.instance.updateProfile(updateRequest)
 
-                withContext(Dispatchers.Main) {
-                    if (response.isSuccessful) {
-                        Toast.makeText(this@EditarPerfilActivity, "Perfil actualizado con éxito!", Toast.LENGTH_LONG).show()
-                        // FIX: Actualizar el nombre guardado localmente después de un cambio exitoso
-                        getSharedPreferences("markettec_prefs", Context.MODE_PRIVATE).edit()
-                            .putString("current_user_first_name", updateRequest.firstName).apply()
-
-                        finish()
+                if (response.isSuccessful) {
+                    // Texto guardado OK. Verificamos si hay imagen.
+                    if (selectedImageUri != null) {
+                        withContext(Dispatchers.Main) {
+                            btnSaveProfile.text = "Subiendo foto..."
+                        }
+                        uploadProfileImage() // Vamos al Paso 2
                     } else {
-                        val errorBody = response.errorBody()?.string()
-                        Log.e("PROFILE_SAVE", "Fallo: ${response.code()} Body: $errorBody")
-                        Toast.makeText(this@EditarPerfilActivity, "Error ${response.code()} al guardar.", Toast.LENGTH_LONG).show()
+                        finishSuccess(updateRequest.firstName ?: "")
                     }
+                } else {
+                    handleError("Error guardando datos: ${response.code()}")
                 }
             } catch (e: Exception) {
-                withContext(Dispatchers.Main) {
-                    Log.e("PROFILE_SAVE", "Error de red.", e)
-                    Toast.makeText(this@EditarPerfilActivity, "Error de red.", Toast.LENGTH_LONG).show()
-                }
-            } finally {
-                withContext(Dispatchers.Main) {
-                    btnSaveProfile.isEnabled = true
-                    btnSaveProfile.text = "Guardar Cambios"
-                }
+                handleError("Error de red al guardar datos.")
             }
         }
+    }
+
+    // PASO 2: Subir Imagen
+    private fun uploadProfileImage() {
+        try {
+            val uri = selectedImageUri!!
+            val file = uriToFile(uri)
+            val requestFile = file.asRequestBody("image/*".toMediaTypeOrNull())
+
+            // "profile.profile_image" apunta al campo anidado en Django
+            val body = MultipartBody.Part.createFormData("profile.profile_image", file.name, requestFile)
+
+            // Llamada síncrona dentro de la corrutina IO
+            // Nota: Aquí se usa runBlocking implícito por estar en launch(IO)
+            lifecycleScope.launch(Dispatchers.IO) {
+                try {
+                    val response = RetrofitClient.instance.updateProfileImage(body)
+                    withContext(Dispatchers.Main) {
+                        if (response.isSuccessful) {
+                            finishSuccess(etFullName.text.toString())
+                        } else {
+                            Toast.makeText(this@EditarPerfilActivity, "Datos guardados, pero falló la imagen (${response.code()})", Toast.LENGTH_LONG).show()
+                            finish()
+                        }
+                    }
+                } catch (e: Exception) {
+                    handleError("Error subiendo imagen.")
+                }
+            }
+
+        } catch (e: Exception) {
+            Log.e("UPLOAD", "Error preparando imagen", e)
+            lifecycleScope.launch { handleError("Error al procesar imagen") }
+        }
+    }
+
+    private suspend fun finishSuccess(firstName: String) {
+        withContext(Dispatchers.Main) {
+            Toast.makeText(this@EditarPerfilActivity, "¡Perfil actualizado correctamente!", Toast.LENGTH_SHORT).show()
+
+            getSharedPreferences("markettec_prefs", Context.MODE_PRIVATE).edit()
+                .putString("current_user_first_name", firstName).apply()
+
+            finish()
+        }
+    }
+
+    private suspend fun handleError(msg: String) {
+        withContext(Dispatchers.Main) {
+            Toast.makeText(this@EditarPerfilActivity, msg, Toast.LENGTH_LONG).show()
+            btnSaveProfile.isEnabled = true
+            btnSaveProfile.text = "Guardar Cambios"
+        }
+    }
+
+    // Utilidad: Convierte Uri de galería a Archivo temporal
+    private fun uriToFile(uri: Uri): File {
+        val inputStream = contentResolver.openInputStream(uri)
+        val tempFile = File.createTempFile("profile_pic", ".jpg", cacheDir)
+        inputStream?.use { input ->
+            FileOutputStream(tempFile).use { output ->
+                input.copyTo(output)
+            }
+        }
+        return tempFile
     }
 }
