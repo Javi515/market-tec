@@ -12,7 +12,7 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
-import com.bumptech.glide.Glide // 👈 Necesario para cargar la URL del servidor
+import com.bumptech.glide.Glide
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.example.markettecnm.network.RetrofitClient
 import kotlinx.coroutines.Dispatchers
@@ -47,19 +47,14 @@ class CuentaFragment : Fragment() {
 
         // 2. Configurar Botones
         setupListeners(view)
-
-        // Nota: Ya no cargamos datos aquí, lo hacemos en onResume para que se actualice al volver
     }
 
-    // 🟢 CLAVE: Usamos onResume para recargar los datos cada vez que la pantalla se muestra.
-    // Así, si vuelves de "Editar Perfil", la foto nueva aparecerá automáticamente.
     override fun onResume() {
         super.onResume()
         fetchUserProfile()
     }
 
     private fun fetchUserProfile() {
-        // Usamos lifecycleScope del view para seguridad
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
             try {
                 val response = RetrofitClient.instance.getMyProfile()
@@ -76,14 +71,15 @@ class CuentaFragment : Fragment() {
                         val imageUrl = userProfile.profile?.profileImage
 
                         if (!imageUrl.isNullOrEmpty()) {
+                            // ⚠️ NOTA: Si el link de la foto es local (ej. 172.x.x.x) y no carga,
+                            // debes asegurarte de que Glide pueda acceder a la IP.
                             Glide.with(this@CuentaFragment)
                                 .load(imageUrl)
-                                .placeholder(android.R.drawable.ic_menu_camera) // Mientras carga
-                                .error(android.R.drawable.ic_menu_camera)       // Si falla
-                                .circleCrop() // Recorte circular
+                                .placeholder(android.R.drawable.ic_menu_camera)
+                                .error(android.R.drawable.ic_menu_camera)
+                                .circleCrop()
                                 .into(imgAvatar)
                         } else {
-                            // Si no hay foto, poner default
                             imgAvatar.setImageResource(android.R.drawable.ic_menu_camera)
                         }
                     }
@@ -95,7 +91,7 @@ class CuentaFragment : Fragment() {
     }
 
     private fun setupListeners(view: View) {
-        // El botón flotante ahora también lleva a Editar Perfil (Mejor UX)
+        // Botones de Edición
         fabChangePhoto.setOnClickListener {
             startActivity(Intent(requireContext(), EditarPerfilActivity::class.java))
         }
@@ -113,8 +109,9 @@ class CuentaFragment : Fragment() {
             startActivity(Intent(requireContext(), MisVentasActivity::class.java))
         }
 
+        // 🟢 CORRECCIÓN CLAVE: Abrir ChatListActivity, que es la lista de chats
         view.findViewById<View>(R.id.rowChats).setOnClickListener {
-            startActivity(Intent(requireContext(), HistorialActivity::class.java))
+            startActivity(Intent(requireContext(), ChatListActivity::class.java)) // <--- APUNTA A LA LISTA
         }
 
         view.findViewById<View>(R.id.rowVender).setOnClickListener {
@@ -134,7 +131,7 @@ class CuentaFragment : Fragment() {
         // Limpiar datos de sesión
         sessionPrefs.edit().clear().apply()
 
-        // Limpiar caché de imágenes de Glide (Opcional pero recomendado al salir)
+        // Limpiar caché de imágenes de Glide (Recomendado)
         Thread { Glide.get(requireContext()).clearDiskCache() }.start()
         Glide.get(requireContext()).clearMemory()
 

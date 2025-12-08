@@ -8,7 +8,7 @@ import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import com.example.markettecnm.network.ErrorResponse
-import com.example.markettecnm.network.RegistrationRequestBody
+import com.example.markettecnm.models.RegistrationRequestBody
 import com.example.markettecnm.network.RetrofitClient // <-- ¡IMPORT AGREGADO!
 import com.google.android.material.textfield.TextInputEditText
 import com.google.gson.Gson

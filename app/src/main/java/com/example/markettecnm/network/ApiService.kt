@@ -20,6 +20,13 @@ import com.example.markettecnm.models.MessageRequest
 import com.example.markettecnm.models.MessageResponse
 import com.example.markettecnm.models.OrderResponse
 import com.example.markettecnm.models.CreateOrderRequest
+import com.example.markettecnm.models.FavoriteResponse
+import com.example.markettecnm.models.ToggleFavoriteRequest
+import com.example.markettecnm.models.LoginRequestBody
+import com.example.markettecnm.models.TokenResponse
+import com.example.markettecnm.models.RegistrationRequestBody
+import com.example.markettecnm.models.RegistrationResponse
+
 
 const val BASE_URL = "http://172.200.235.24/"
 
@@ -58,7 +65,7 @@ interface ApiService {
     @PATCH("api/products/{id}/mark_out_of_stock/")
     suspend fun markProductAsSoldOut(
         @Path("id") productId: Int,
-        @Query("q") productName: String, // 🟢 ESTE ERA EL PARÁMETRO FALTANTE
+        @Query("q") productName: String,
         @Body productBody: ProductModel
     ): Response<ProductModel>
 
@@ -83,7 +90,7 @@ interface ApiService {
     // ================== 3. FAVORITOS Y AUTH (TIPOS CORREGIDOS) ==================
 
     @GET("api/favorites/")
-    suspend fun getFavorites(): Response<List<FavoriteResponse>> // 🟢 Ahora devuelve FavoriteResponse con .product
+    suspend fun getFavorites(): Response<List<FavoriteResponse>>
 
     @POST("api/favorites/toggle/")
     suspend fun toggleFavorite(@Body request: ToggleFavoriteRequest): Response<Void>
@@ -111,13 +118,17 @@ interface ApiService {
     @DELETE("api/reviews/{id}/")
     suspend fun deleteReview(@Path("id") reviewId: Int): Response<Unit>
 
-    // ================== 5. SISTEMA DE CHAT ==================
+    // ================== 5. SISTEMA DE CHAT 💬 ==================
 
     @POST("api/chat/start_chat/")
     suspend fun startChat(
         @Query("target_user_id") targetUserId: Int,
         @Body dummyBody: Map<String, String>
     ): Response<ChatResponse>
+
+    // 🟢 FUNCIÓN FALTANTE RESTAURADA
+    @GET("api/chat/")
+    suspend fun getMyChats(): Response<List<ChatResponse>>
 
     @GET("api/messages/")
     suspend fun getMessages(@Query("conversation") conversationId: Int): Response<List<MessageResponse>>
@@ -160,4 +171,3 @@ object RetrofitClient {
             .create(ApiService::class.java)
     }
 }
-

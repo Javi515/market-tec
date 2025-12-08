@@ -101,8 +101,14 @@
             android:theme="@style/Theme.AppCompat.NoActionBar" />
 
         <activity
+            android:name=".ChatListActivity"
+            android:exported="false"
+            android:parentActivityName=".HomeActivity" />
+
+        <activity
             android:name=".ChatActivity"
             android:exported="false"
+            android:parentActivityName=".ChatListActivity"
             android:windowSoftInputMode="adjustResize" />
 
     </application>

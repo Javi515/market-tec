@@ -8,7 +8,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope // ✅ Importante para evitar crashes
-import com.example.markettecnm.network.LoginRequestBody
+import com.example.markettecnm.models.LoginRequestBody
 import com.example.markettecnm.network.RetrofitClient
 import com.example.markettecnm.network.ErrorResponse
 import com.google.android.material.textfield.TextInputEditText
@@ -71,7 +71,7 @@ class MainActivity : AppCompatActivity() {
                 val response = RetrofitClient.instance.loginUser(requestBody)
 
                 if (response.isSuccessful && response.body() != null) {
-                    val accessToken = response.body()!!.accessToken
+                    val accessToken = response.body()!!.access
 
                     // Guardar Token TEMPORALMENTE
                     val prefs = getSharedPreferences("markettec_prefs", MODE_PRIVATE)

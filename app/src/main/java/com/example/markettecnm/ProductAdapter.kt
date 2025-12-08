@@ -13,7 +13,7 @@ import com.bumptech.glide.Glide
 import com.example.markettecnm.R
 import com.example.markettecnm.models.ProductModel
 import com.example.markettecnm.network.RetrofitClient
-import com.example.markettecnm.network.ToggleFavoriteRequest
+import com.example.markettecnm.models.ToggleFavoriteRequest
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
