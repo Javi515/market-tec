@@ -236,7 +236,7 @@ class ProductDetailActivity : AppCompatActivity() {
         }
 
         // Validación visual simple (Idealmente comparar IDs)
-        val isMyProduct = product.vendor.firstName == currentUserName
+        val isMyProduct = product.vendor?.firstName == currentUserName
         if (isMyProduct) {
             Toast.makeText(this, "No puedes reseñar tus propios productos.", Toast.LENGTH_LONG).show()
             return

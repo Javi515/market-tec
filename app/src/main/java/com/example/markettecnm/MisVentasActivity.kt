@@ -31,9 +31,8 @@ class MisVentasActivity : AppCompatActivity() {
         setupToolbar()
 
         // Enlazamos las vistas
-        // Asegúrate de que tu XML tenga estos IDs (ver paso anterior si faltan)
         rvMisVentas = findViewById(R.id.rvMisVentas)
-        tvEmpty = findViewById(R.id.tvEmpty) // TextView para "No tienes ventas"
+        tvEmpty = findViewById(R.id.tvEmpty)
 
         setupRecyclerView()
         loadMySales()
@@ -54,9 +53,8 @@ class MisVentasActivity : AppCompatActivity() {
     private fun setupRecyclerView() {
         rvMisVentas.layoutManager = LinearLayoutManager(this)
 
-        // Inicializamos con lista vacía
+        // Inicializamos con lista vacía y el listener del clic
         ventasAdapter = VentasAdapter(emptyList()) { clientId, productName ->
-            // Al hacer clic en "Contactar Comprador", llamamos a la lógica de chat
             if (clientId != 0) {
                 initiateChat(clientId, productName)
             } else {
@@ -69,7 +67,6 @@ class MisVentasActivity : AppCompatActivity() {
     private fun loadMySales() {
         lifecycleScope.launch(Dispatchers.IO) {
             try {
-                // Llamamos al endpoint de ventas
                 val response = RetrofitClient.instance.getMySales()
 
                 withContext(Dispatchers.Main) {
@@ -80,13 +77,14 @@ class MisVentasActivity : AppCompatActivity() {
                             tvEmpty.visibility = View.GONE
                             rvMisVentas.visibility = View.VISIBLE
 
-                            // Actualizamos el adaptador
+                            // Actualizamos el adaptador con los datos nuevos
+                            // NOTA: Es mejor actualizar la lista interna si el adapter lo soporta,
+                            // pero recrearlo funciona para salir del paso.
                             ventasAdapter = VentasAdapter(sales) { clientId, productName ->
                                 initiateChat(clientId, productName)
                             }
                             rvMisVentas.adapter = ventasAdapter
                         } else {
-                            // Mostrar estado vacío
                             rvMisVentas.visibility = View.GONE
                             tvEmpty.visibility = View.VISIBLE
                             tvEmpty.text = "Aún no tienes órdenes de venta.\n¡Publica tu primer producto!"
@@ -104,24 +102,27 @@ class MisVentasActivity : AppCompatActivity() {
         }
     }
 
-    // 🟢 LÓGICA DE CHAT (Reutilizando la estrategia Híbrida que funciona)
+    // 🟢 LÓGICA DE CHAT CORREGIDA
     private fun initiateChat(targetUserId: Int, productName: String) {
         lifecycleScope.launch(Dispatchers.IO) {
             try {
                 Log.d("CHAT_DEBUG", "Iniciando chat con Cliente ID: $targetUserId")
 
-                // Cuerpo dummy para evitar error 500 en Django
                 val dummyBody = mapOf("action" to "init")
-
                 val response = RetrofitClient.instance.startChat(targetUserId, dummyBody)
 
                 withContext(Dispatchers.Main) {
                     if (response.isSuccessful && response.body() != null) {
                         val chatData = response.body()!!
 
+                        // 🟢 CORRECCIÓN AQUÍ:
+                        // 1. Usamos 'otherUser' (camelCase)
+                        // 2. Obtenemos el nombre o el username
+                        val chatTitle = chatData.otherUser.firstName ?: chatData.otherUser.username ?: "Cliente"
+
                         val intent = Intent(this@MisVentasActivity, ChatActivity::class.java).apply {
                             putExtra("conversation_id", chatData.id)
-                            putExtra("chat_title", chatData.other_user ?: "Cliente")
+                            putExtra("chat_title", chatTitle) // Título corregido
                             putExtra("product_name", productName)
                         }
                         startActivity(intent)

@@ -7,7 +7,7 @@ import android.util.Log
 import android.view.View
 import android.widget.TextView
 import android.widget.Toast
-import android.widget.LinearLayout // Importar LinearLayout (Para el contenedor de estado vacío)
+import android.widget.LinearLayout
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
@@ -16,7 +16,6 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.markettecnm.adapters.ComprasAdapter
 import com.example.markettecnm.models.OrderResponse
-import com.example.markettecnm.models.ProductModel
 import com.example.markettecnm.network.RetrofitClient
 import com.google.android.material.appbar.MaterialToolbar
 import kotlinx.coroutines.Dispatchers
@@ -26,15 +25,12 @@ import kotlinx.coroutines.withContext
 class MisComprasActivity : AppCompatActivity() {
 
     private lateinit var rvMisCompras: RecyclerView
-
-    // DECLARACIONES CORREGIDAS: Contenedor y TextView interno
     private lateinit var llEmptyState: LinearLayout
     private lateinit var tvEmptyMessage: TextView
 
     private lateinit var comprasAdapter: ComprasAdapter
     private var ordersList = mutableListOf<OrderResponse>()
 
-    // Variable para saber quién está logueado
     private var currentUserId: Int = -1
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -54,10 +50,10 @@ class MisComprasActivity : AppCompatActivity() {
             setNavigationOnClickListener { onBackPressedDispatcher.onBackPressed() }
         }
 
-        // 2. INICIALIZACIÓN DE VISTAS CORREGIDA
+        // 2. INICIALIZACIÓN DE VISTAS
         rvMisCompras = findViewById(R.id.rvMisCompras)
         llEmptyState = findViewById(R.id.llEmptyState)
-        tvEmptyMessage = findViewById(R.id.tvEmptyMessage) // TextView dentro del contenedor
+        tvEmptyMessage = findViewById(R.id.tvEmptyMessage)
 
         setupRecyclerView()
 
@@ -67,7 +63,6 @@ class MisComprasActivity : AppCompatActivity() {
             showEmptyState()
         }
     }
-
 
     private fun setupRecyclerView() {
         comprasAdapter = ComprasAdapter(
@@ -83,16 +78,12 @@ class MisComprasActivity : AppCompatActivity() {
         rvMisCompras.adapter = comprasAdapter
     }
 
-
-    // FUNCIÓN CORREGIDA: Muestra estado de carga
     private fun showLoadingState() {
         rvMisCompras.visibility = View.GONE
         llEmptyState.visibility = View.VISIBLE
         tvEmptyMessage.text = "Cargando órdenes..."
     }
 
-
-    // FUNCIÓN DE CARGA: Obtiene las órdenes del cliente desde la API
     private fun loadOrdersFromApi() {
         showLoadingState()
         lifecycleScope.launch(Dispatchers.IO) {
@@ -125,8 +116,6 @@ class MisComprasActivity : AppCompatActivity() {
         }
     }
 
-
-    // Diálogo de confirmación antes de llamar a la API
     private fun showCancelConfirmationDialog(orderId: Int) {
         AlertDialog.Builder(this)
             .setTitle("Cancelar Pedido")
@@ -139,21 +128,17 @@ class MisComprasActivity : AppCompatActivity() {
             .show()
     }
 
-
-    // FUNCIÓN CLAVE: Llama al endpoint de cancelación
     private fun cancelOrderOnApi(orderId: Int) {
         Toast.makeText(this, "Cancelando orden #$orderId...", Toast.LENGTH_LONG).show()
 
         lifecycleScope.launch(Dispatchers.IO) {
             try {
                 val dummyBody = mapOf("action" to "cancel")
-
                 val response = RetrofitClient.instance.cancelOrder(orderId, dummyBody)
 
                 withContext(Dispatchers.Main) {
                     if (response.isSuccessful) {
                         Toast.makeText(this@MisComprasActivity, "✅ Orden #$orderId cancelada.", Toast.LENGTH_LONG).show()
-
                         loadOrdersFromApi()
                     } else {
                         val errorBody = response.errorBody()?.string()
@@ -170,8 +155,6 @@ class MisComprasActivity : AppCompatActivity() {
         }
     }
 
-
-    // Lógica "Detective" para encontrar ID del vendedor (Mantener)
     private fun fetchRealVendorAndChat(productId: Int, productName: String) {
         Toast.makeText(this, "Verificando vendedor...", Toast.LENGTH_SHORT).show()
 
@@ -205,20 +188,24 @@ class MisComprasActivity : AppCompatActivity() {
         }
     }
 
-    // Estrategia Híbrida (@Query + @Body) para el Chat (Mantener)
     private fun initiateChat(targetUserId: Int, productName: String) {
         lifecycleScope.launch(Dispatchers.IO) {
             try {
                 val dummyBody = mapOf("action" to "init")
-
                 val response = RetrofitClient.instance.startChat(targetUserId, dummyBody)
 
                 withContext(Dispatchers.Main) {
                     if (response.isSuccessful && response.body() != null) {
                         val chatData = response.body()!!
+
+                        // 🟢 CORRECCIÓN AQUÍ:
+                        // 1. Usamos 'otherUser' (camelCase, como está en models.kt)
+                        // 2. Accedemos a 'firstName' o 'username' porque otherUser es un Objeto.
+                        val chatTitleName = chatData.otherUser.firstName ?: chatData.otherUser.username ?: "Vendedor"
+
                         val intent = Intent(this@MisComprasActivity, ChatActivity::class.java).apply {
                             putExtra("conversation_id", chatData.id)
-                            putExtra("chat_title", chatData.other_user ?: "Vendedor")
+                            putExtra("chat_title", chatTitleName) // Usamos el nombre extraído
                             putExtra("product_name", productName)
                         }
                         startActivity(intent)
@@ -236,7 +223,6 @@ class MisComprasActivity : AppCompatActivity() {
         }
     }
 
-    // 🟢 Funciones de estado corregidas para usar llEmptyState y tvEmptyMessage
     private fun showResults() {
         llEmptyState.visibility = View.GONE
         rvMisCompras.visibility = View.VISIBLE
