@@ -16,14 +16,13 @@ data class ProductModel(
     @SerializedName("user") val user: Int,
     @SerializedName("status") val status: String,
 
+    // Usa la clase VendorModel definida más abajo en este mismo archivo
     @SerializedName("vendor") val vendor: VendorModel,
 
-    // 👇 ESTE ES EL CAMPO NUEVO NECESARIO PARA FILTRAR
     @SerializedName("category") val category: Int,
-
     @SerializedName("category_name") val categoryName: String,
     @SerializedName("product_image") val image: String? = null
-)
+) : Serializable
 
 data class CategoryModel(
     @SerializedName("id") val id: Int,
@@ -31,7 +30,6 @@ data class CategoryModel(
     @SerializedName("image") val image: String? = null
 )
 
-// Definición de VendorModel (Necesaria aquí para que ProductModel funcione)
 data class VendorModel(
     @SerializedName("id") val id: Int = 0,
     @SerializedName("first_name") val firstName: String? = null,
@@ -59,8 +57,21 @@ data class Reviewer(
     val career: String?
 )
 
+data class CreateReviewRequest(
+    val product: Int,
+    val rating: Int,
+    val comment: String
+)
+
+data class UpdateReviewRequest(
+    val id: Int,
+    val product: Int,
+    val rating: Int,
+    val comment: String
+)
+
 // ==========================================
-// 3. PERFIL DE USUARIO Y BANEO (LECTURA)
+// 3. PERFIL DE USUARIO Y BANEO
 // ==========================================
 
 data class UserProfile(
@@ -78,42 +89,25 @@ data class ProfileDetail(
     val career: String?,
     @SerializedName("date_of_birth") val dateOfBirth: String?,
     @SerializedName("profile_image") val profileImage: String?,
-
-    // Campos de Baneo
     @SerializedName("is_banned") val isBanned: Boolean? = false,
     @SerializedName("ban_reason") val banReason: String? = null
 ) : Serializable
 
-// ==========================================
-// 4. ACTUALIZACIÓN DE PERFIL (ESCRITURA)
-// ==========================================
-
 data class UserProfileUpdate(
-    @SerializedName("first_name")
-    val firstName: String?,
-
+    @SerializedName("first_name") val firstName: String?,
     val email: String? = null,
     val password: String? = null,
-
-    // 👇 Enviamos los datos extra dentro de un objeto 'profile'
-    @SerializedName("profile")
-    val profile: ProfileUpdateData
+    @SerializedName("profile") val profile: ProfileUpdateData
 )
 
-// Clase auxiliar para agrupar los datos del perfil
 data class ProfileUpdateData(
-    @SerializedName("phone_number")
-    val phoneNumber: String?,
-
-    @SerializedName("date_of_birth")
-    val dateOfBirth: String?,
-
-    @SerializedName("career")
-    val career: String?
+    @SerializedName("phone_number") val phoneNumber: String?,
+    @SerializedName("date_of_birth") val dateOfBirth: String?,
+    @SerializedName("career") val career: String?
 )
 
 // ==========================================
-// 5. CHAT (Para que ApiService no falle)
+// 4. CHAT
 // ==========================================
 
 data class ChatResponse(
@@ -138,4 +132,35 @@ data class MessageResponse(
 data class MessageRequest(
     val conversation: Int,
     val text: String
+)
+
+// ==========================================
+// 5. VENTAS Y ÓRDENES (CARRITO)
+// ==========================================
+
+data class OrderResponse(
+    val id: Int,
+    val client: Int,
+    @SerializedName("total_price") val totalPrice: String,
+    @SerializedName("created_at") val createdAt: String,
+    val status: String,
+    val items: List<OrderItem>
+) : Serializable
+
+data class OrderItem(
+    val id: Int,
+    val quantity: Int,
+    @SerializedName("price_at_purchase") val priceAtPurchase: String,
+    val product: ProductModel
+) : Serializable
+
+data class CreateOrderRequest(
+    @SerializedName("items_to_create")
+    val itemsToCreate: List<CreateOrderItem>
+)
+
+// 🟢 CORRECCIÓN APLICADA: Se cambió "product" por "product_id" en SerializedName
+data class CreateOrderItem(
+    @SerializedName("product_id") val productId: Int,
+    val quantity: Int
 )

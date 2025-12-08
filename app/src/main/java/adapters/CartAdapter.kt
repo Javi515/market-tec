@@ -17,26 +17,29 @@ class CartAdapter(
     private var quantities: Map<String, Int>, // Mapa de ID -> Cantidad
     private val onDeleteClick: (ProductModel) -> Unit,
     private val onProductClick: (ProductModel) -> Unit,
-    // Agregamos un listener para notificar a la Activity sobre selecciones/totales
     private val onSelectionChange: (ProductModel, Boolean) -> Unit
 ) : RecyclerView.Adapter<CartAdapter.CartViewHolder>() {
 
-    // Cambiamos el tipo de dato de String a Int para las cantidades
+    // Guardamos los IDs seleccionados
     private var selectedItems = mutableSetOf<Int>()
 
+    init {
+        // Al iniciar, todos los productos aparecen seleccionados
+        selectedItems.addAll(products.map { it.id })
+    }
+
     inner class CartViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-        // IDs del layout item_cart_product.xml
         val cbSelectProduct: CheckBox = view.findViewById(R.id.cbSelectProduct)
         val ivImage: ImageView = view.findViewById(R.id.ivCartProduct)
-        val tvName: TextView = view.findViewById(R.id.tvCartProductName) // Coincide con tu XML
-        val tvQuantity: TextView = view.findViewById(R.id.tvProductQuantity) // Coincide con tu XML
-        val tvPrice: TextView = view.findViewById(R.id.tvCartProductPrice) // Coincide con tu XML
-        val btnDelete: ImageButton = view.findViewById(R.id.btnDeleteProduct) // Coincide con tu XML
+        val tvName: TextView = view.findViewById(R.id.tvCartProductName)
+        val tvQuantity: TextView = view.findViewById(R.id.tvProductQuantity)
+        val tvPrice: TextView = view.findViewById(R.id.tvCartProductPrice)
+        val btnDelete: ImageButton = view.findViewById(R.id.btnDeleteProduct)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): CartViewHolder {
-        // Usamos R.layout.item_cart_product para que coincida con tu XML
-        val view = LayoutInflater.from(parent.context).inflate(R.layout.item_cart_product, parent, false)
+        val view = LayoutInflater.from(parent.context)
+            .inflate(R.layout.item_cart_product, parent, false)
         return CartViewHolder(view)
     }
 
@@ -44,15 +47,14 @@ class CartAdapter(
         val product = products[position]
         val idString = product.id.toString()
         val quantity = quantities[idString] ?: 1
-
         val price = product.price.toDoubleOrNull() ?: 0.0
 
-        // 1. Textos
+        // Textos
         holder.tvName.text = product.name
         holder.tvPrice.text = String.format("$%.2f", price)
         holder.tvQuantity.text = "Cantidad: $quantity"
 
-        // 2. CheckBox y Selección
+        // CheckBox refleja estado guardado
         holder.cbSelectProduct.isChecked = selectedItems.contains(product.id)
 
         holder.cbSelectProduct.setOnCheckedChangeListener { _, isChecked ->
@@ -64,7 +66,7 @@ class CartAdapter(
             onSelectionChange(product, isChecked)
         }
 
-        // 3. Imagen con Glide
+        // Imagen con Glide
         if (!product.image.isNullOrEmpty()) {
             Glide.with(holder.itemView.context)
                 .load(product.image)
@@ -74,7 +76,7 @@ class CartAdapter(
             holder.ivImage.setImageResource(android.R.drawable.ic_menu_gallery)
         }
 
-        // 4. Clicks
+        // Clicks
         holder.btnDelete.setOnClickListener { onDeleteClick(product) }
         holder.itemView.setOnClickListener { onProductClick(product) }
     }
@@ -85,17 +87,15 @@ class CartAdapter(
         this.products = newProducts
         this.quantities = newQuantities
 
-        // Limpiamos las selecciones al actualizar para evitar conflictos con IDs viejos
-        selectedItems.clear()
+        // Mantener estado: agregar nuevos productos como seleccionados si no estaban
+        val newIds = newProducts.map { it.id }
+        selectedItems.addAll(newIds)
+
         notifyDataSetChanged()
     }
 
-    // Función pública para que la Activity pueda obtener los seleccionados
-    fun getSelectedProductIds(): Set<Int> {
-        return selectedItems
-    }
+    fun getSelectedProductIds(): Set<Int> = selectedItems
 
-    // Función pública para obtener el subtotal de los productos seleccionados
     fun getSelectedProductsForOrder(): List<Pair<ProductModel, Int>> {
         return products.filter { selectedItems.contains(it.id) }
             .map { it to (quantities[it.id.toString()] ?: 1) }

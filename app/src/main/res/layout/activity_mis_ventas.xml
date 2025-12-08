@@ -5,7 +5,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="#FFFFFF"
+    android:background="#F5F5F5"
     tools:context=".MisVentasActivity">
 
     <com.google.android.material.appbar.MaterialToolbar
@@ -14,17 +14,40 @@
         android:layout_height="?attr/actionBarSize"
         android:background="#FFFFFF"
         android:elevation="4dp"
-        app:title="Mis Ventas (Órdenes)"
+        app:title="Mis Ventas"
+        app:titleCentered="true"
         app:titleTextColor="#000000" />
 
-    <TextView
-        android:id="@+id/tvVentasPlaceholder"
+    <FrameLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:gravity="center"
-        android:text="Aún no tienes órdenes de venta.\n¡Publica tu primer producto!"
-        android:textSize="18sp"
-        android:textColor="#8A8A8A"
-        android:padding="30dp" />
+        android:layout_height="match_parent">
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rvMisVentas"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:padding="8dp"
+            android:background="#FFFFFF"
+            android:visibility="gone"
+            tools:listitem="@layout/item_venta"
+            tools:visibility="visible" />
+
+        <TextView
+            android:id="@+id/tvEmpty"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:gravity="center"
+            android:text="Aún no tienes órdenes de venta."
+            android:textColor="#757575"
+            android:textSize="16sp"
+            android:lineSpacingExtra="6dp"
+            android:drawableTop="@android:drawable/ic_menu_myplaces"
+            android:drawableTint="#BDBDBD"
+            android:drawablePadding="16dp"
+            android:visibility="visible" />
+
+    </FrameLayout>
 
 </LinearLayout>

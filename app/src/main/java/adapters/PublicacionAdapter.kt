@@ -6,7 +6,6 @@ import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.PopupMenu
 import android.widget.TextView
-import android.widget.Toast
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.example.markettecnm.R
@@ -14,8 +13,8 @@ import com.example.markettecnm.models.ProductModel
 
 class PublicacionAdapter(
     private var products: List<ProductModel>,
-    // Callback: action = "edit", "delete" o "view"
-    private val onProductAction: (String, ProductModel) -> Unit
+    // 🟢 Callback modificado: Pasa la ID de la acción (Int) y el Producto
+    private val onProductAction: (Int, ProductModel) -> Unit
 ) : RecyclerView.Adapter<PublicacionAdapter.PublicacionViewHolder>() {
 
     inner class PublicacionViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
@@ -27,9 +26,7 @@ class PublicacionAdapter(
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): PublicacionViewHolder {
-        // 🛠️ CORRECCIÓN 1: Usamos R.layout.item_publicacion (singular y sin la 'es' final)
-        // Esto asume que el layout se llama item_publicacion.xml o item_publicaciones.xml.
-        // Usaremos 'item_publicacion' para consistencia con el código que te di.
+        // Usamos R.layout.item_publicaciones tal como está en tu código
         val view = LayoutInflater.from(parent.context)
             .inflate(R.layout.item_publicaciones, parent, false)
         return PublicacionViewHolder(view)
@@ -41,8 +38,11 @@ class PublicacionAdapter(
         holder.tvProductName.text = product.name
         holder.tvProductPrice.text = "$${product.price}"
 
-        // Formatear estatus (Pending, Active, etc.)
-        holder.tvProductStatus.text = "Estatus: ${product.status.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }}"
+        // Formatear estatus (Aplicando minúsculas/mayúsculas de forma segura)
+        val statusText = product.status.replaceFirstChar {
+            if (it.isLowerCase()) it.titlecase(java.util.Locale.getDefault()) else it.toString()
+        }
+        holder.tvProductStatus.text = "Estatus: $statusText"
 
         // Cargar imagen
         if (!product.image.isNullOrBlank()) {
@@ -54,30 +54,26 @@ class PublicacionAdapter(
             holder.ivProductImage.setImageResource(android.R.drawable.ic_menu_gallery)
         }
 
-        // Lógica del Pop-up Menu de Opciones (Editar/Eliminar)
+        // Lógica del Pop-up Menu de Opciones (Editar/Eliminar/Agotado)
         holder.btnOptions.setOnClickListener { view ->
             val popup = PopupMenu(view.context, view)
-            // Asegúrate de que el menú se llama menu_publicacion_options.xml
+
+            // 🛑 Asegúrate de que el menú se llama menu_publicaciones.xml o menu_publicacion_options.xml
+            // Usaremos R.menu.menu_publicaciones para consistencia con la respuesta anterior.
             popup.menuInflater.inflate(R.menu.menu_publicacion_options, popup.menu)
+
             popup.setOnMenuItemClickListener { item ->
-                when (item.itemId) {
-                    R.id.action_edit_product -> {
-                        onProductAction("edit", product)
-                        true
-                    }
-                    R.id.action_delete_product -> {
-                        onProductAction("delete", product)
-                        true
-                    }
-                    else -> false
-                }
+                // 🟢 Pasamos la ID del menú directamente al callback de la Activity
+                onProductAction(item.itemId, product)
+                true
             }
             popup.show()
         }
 
-        // 🛠️ CORRECCIÓN 2: Clic en toda la fila para ver detalle
+        // Clic en toda la fila para ver detalle
         holder.itemView.setOnClickListener {
-            onProductAction("view", product)
+            // 🟢 Usamos la ID de recurso como "acción" para mayor claridad
+            onProductAction(R.id.action_view_product_detail, product)
         }
     }
 

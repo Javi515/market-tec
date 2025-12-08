@@ -7,12 +7,15 @@ import android.util.Log
 import android.view.View
 import android.widget.TextView
 import android.widget.Toast
+import android.widget.LinearLayout // Importar LinearLayout (Para el contenedor de estado vacío)
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.markettecnm.adapters.ComprasAdapter
+import com.example.markettecnm.models.OrderResponse
 import com.example.markettecnm.models.ProductModel
 import com.example.markettecnm.network.RetrofitClient
 import com.google.android.material.appbar.MaterialToolbar
@@ -23,11 +26,13 @@ import kotlinx.coroutines.withContext
 class MisComprasActivity : AppCompatActivity() {
 
     private lateinit var rvMisCompras: RecyclerView
-    private lateinit var tvNoCompras: TextView
-    private lateinit var comprasAdapter: ComprasAdapter
 
-    private var comprasList = mutableListOf<ProductModel>()
-    private var comprasQuantities = mapOf<String, Int>()
+    // DECLARACIONES CORREGIDAS: Contenedor y TextView interno
+    private lateinit var llEmptyState: LinearLayout
+    private lateinit var tvEmptyMessage: TextView
+
+    private lateinit var comprasAdapter: ComprasAdapter
+    private var ordersList = mutableListOf<OrderResponse>()
 
     // Variable para saber quién está logueado
     private var currentUserId: Int = -1
@@ -36,7 +41,7 @@ class MisComprasActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_mis_compras)
 
-        // 1. OBTENER EL ID DEL USUARIO ACTUAL (Vital para cargar SU historial)
+        // 1. OBTENER EL ID DEL USUARIO ACTUAL
         val prefs = getSharedPreferences("markettec_prefs", Context.MODE_PRIVATE)
         currentUserId = prefs.getInt("current_user_id", -1)
 
@@ -49,78 +54,124 @@ class MisComprasActivity : AppCompatActivity() {
             setNavigationOnClickListener { onBackPressedDispatcher.onBackPressed() }
         }
 
+        // 2. INICIALIZACIÓN DE VISTAS CORREGIDA
         rvMisCompras = findViewById(R.id.rvMisCompras)
-        tvNoCompras = findViewById(R.id.tvNoCompras)
+        llEmptyState = findViewById(R.id.llEmptyState)
+        tvEmptyMessage = findViewById(R.id.tvEmptyMessage) // TextView dentro del contenedor
+
+        setupRecyclerView()
 
         if (currentUserId != -1) {
-            loadPurchaseItems()
+            loadOrdersFromApi()
         } else {
             showEmptyState()
-            // Mensaje opcional si entran sin sesión
-            // Toast.makeText(this, "Inicia sesión para ver tus compras", Toast.LENGTH_SHORT).show()
         }
     }
 
-    private fun loadPurchaseItems() {
-        // Leemos las compras DEL USUARIO ACTUAL
-        val purchaseMap = loadPurchasesFromPrefs(this)
-        comprasQuantities = purchaseMap
-        val purchaseIds = purchaseMap.keys
-
-        if (purchaseIds.isEmpty()) {
-            showEmptyState()
-            return
-        }
-
-        lifecycleScope.launch(Dispatchers.IO) {
-            try {
-                // Obtenemos todos los productos para filtrar los que compró este usuario
-                val response = RetrofitClient.instance.getProducts()
-
-                withContext(Dispatchers.Main) {
-                    if (response.isSuccessful) {
-                        val allProducts = response.body() ?: emptyList()
-
-                        val purchasedProducts = allProducts.filter { product ->
-                            purchaseIds.contains(product.id.toString())
-                        }
-
-                        comprasList.clear()
-                        comprasList.addAll(purchasedProducts)
-
-                        if (comprasList.isEmpty()) {
-                            showEmptyState()
-                        } else {
-                            showResults()
-                        }
-                    } else {
-                        Toast.makeText(this@MisComprasActivity, "Error al cargar catálogo", Toast.LENGTH_SHORT).show()
-                        showEmptyState()
-                    }
-                }
-            } catch (e: Exception) {
-                withContext(Dispatchers.Main) {
-                    Toast.makeText(this@MisComprasActivity, "Error de red", Toast.LENGTH_SHORT).show()
-                    showEmptyState()
-                }
-            }
-        }
-    }
 
     private fun setupRecyclerView() {
         comprasAdapter = ComprasAdapter(
-            comprasList,
-            comprasQuantities,
-            onContactClick = { product ->
-                // Usamos la lógica "Detective" para encontrar el ID del vendedor correcto
-                fetchRealVendorAndChat(product.id, product.name)
+            ordersList = ordersList,
+            onContactClick = { productId, productName ->
+                fetchRealVendorAndChat(productId, productName)
+            },
+            onCancelClick = { orderId ->
+                showCancelConfirmationDialog(orderId)
             }
         )
         rvMisCompras.layoutManager = LinearLayoutManager(this)
         rvMisCompras.adapter = comprasAdapter
     }
 
-    // 🟢 Lógica "Detective" para encontrar ID del vendedor
+
+    // FUNCIÓN CORREGIDA: Muestra estado de carga
+    private fun showLoadingState() {
+        rvMisCompras.visibility = View.GONE
+        llEmptyState.visibility = View.VISIBLE
+        tvEmptyMessage.text = "Cargando órdenes..."
+    }
+
+
+    // FUNCIÓN DE CARGA: Obtiene las órdenes del cliente desde la API
+    private fun loadOrdersFromApi() {
+        showLoadingState()
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val response = RetrofitClient.instance.getOrders()
+
+                withContext(Dispatchers.Main) {
+                    if (response.isSuccessful && response.body() != null) {
+                        ordersList.clear()
+                        ordersList.addAll(response.body()!!.reversed())
+
+                        if (ordersList.isEmpty()) {
+                            showEmptyState()
+                        } else {
+                            showResults()
+                            comprasAdapter.updateData(ordersList)
+                        }
+                    } else {
+                        Toast.makeText(this@MisComprasActivity, "Error al cargar órdenes (${response.code()})", Toast.LENGTH_SHORT).show()
+                        showEmptyState()
+                    }
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    Log.e("COMPRAS_API_ERROR", "Error de red: ${e.message}")
+                    Toast.makeText(this@MisComprasActivity, "Error de red al cargar órdenes", Toast.LENGTH_SHORT).show()
+                    showEmptyState()
+                }
+            }
+        }
+    }
+
+
+    // Diálogo de confirmación antes de llamar a la API
+    private fun showCancelConfirmationDialog(orderId: Int) {
+        AlertDialog.Builder(this)
+            .setTitle("Cancelar Pedido")
+            .setMessage("¿Estás seguro de que deseas cancelar la orden #$orderId? Esta acción no se puede deshacer.")
+            .setPositiveButton("Sí, Cancelar") { dialog, _ ->
+                cancelOrderOnApi(orderId)
+                dialog.dismiss()
+            }
+            .setNegativeButton("No, Mantener", null)
+            .show()
+    }
+
+
+    // FUNCIÓN CLAVE: Llama al endpoint de cancelación
+    private fun cancelOrderOnApi(orderId: Int) {
+        Toast.makeText(this, "Cancelando orden #$orderId...", Toast.LENGTH_LONG).show()
+
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val dummyBody = mapOf("action" to "cancel")
+
+                val response = RetrofitClient.instance.cancelOrder(orderId, dummyBody)
+
+                withContext(Dispatchers.Main) {
+                    if (response.isSuccessful) {
+                        Toast.makeText(this@MisComprasActivity, "✅ Orden #$orderId cancelada.", Toast.LENGTH_LONG).show()
+
+                        loadOrdersFromApi()
+                    } else {
+                        val errorBody = response.errorBody()?.string()
+                        Log.e("CANCEL_ERROR", "Fallo ${response.code()}: $errorBody")
+                        Toast.makeText(this@MisComprasActivity, "Error: No se pudo cancelar el pedido. (${response.code()})", Toast.LENGTH_LONG).show()
+                    }
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    Log.e("CANCEL_EXCEPTION", "Error de red al cancelar", e)
+                    Toast.makeText(this@MisComprasActivity, "Error de conexión.", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
+
+
+    // Lógica "Detective" para encontrar ID del vendedor (Mantener)
     private fun fetchRealVendorAndChat(productId: Int, productName: String) {
         Toast.makeText(this, "Verificando vendedor...", Toast.LENGTH_SHORT).show()
 
@@ -136,8 +187,6 @@ class MisComprasActivity : AppCompatActivity() {
                         if (finalSellerId == 0 && fullProduct.vendor != null) {
                             finalSellerId = fullProduct.vendor.id
                         }
-
-                        Log.d("CHAT_DEBUG", "ID Final para el Chat: $finalSellerId")
 
                         if (finalSellerId != 0) {
                             initiateChat(finalSellerId, productName)
@@ -156,13 +205,10 @@ class MisComprasActivity : AppCompatActivity() {
         }
     }
 
-    // 🟢 Estrategia Híbrida (@Query + @Body) para el Chat
+    // Estrategia Híbrida (@Query + @Body) para el Chat (Mantener)
     private fun initiateChat(targetUserId: Int, productName: String) {
         lifecycleScope.launch(Dispatchers.IO) {
             try {
-                Log.d("CHAT_DEBUG", "Iniciando chat con User ID: $targetUserId")
-
-                // Enviamos un cuerpo Dummy para que el servidor no reciba NULL
                 val dummyBody = mapOf("action" to "init")
 
                 val response = RetrofitClient.instance.startChat(targetUserId, dummyBody)
@@ -177,64 +223,28 @@ class MisComprasActivity : AppCompatActivity() {
                         }
                         startActivity(intent)
                     } else {
-                        val errorBody = response.errorBody()?.string() ?: ""
                         val errorCode = response.code()
-
-                        Log.e("CHAT_ERROR", "Código: $errorCode - Body: $errorBody")
-
-                        if (errorCode == 404) {
-                            Toast.makeText(this@MisComprasActivity, "El vendedor no tiene perfil configurado.", Toast.LENGTH_LONG).show()
-                        } else {
-                            Toast.makeText(this@MisComprasActivity, "No se pudo conectar ($errorCode)", Toast.LENGTH_SHORT).show()
-                        }
+                        val msg = if (errorCode == 404) "El vendedor no tiene perfil." else "No se pudo conectar ($errorCode)"
+                        Toast.makeText(this@MisComprasActivity, msg, Toast.LENGTH_LONG).show()
                     }
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
-                    Log.e("CHAT_EXCEPTION", "Fallo total:", e)
                     Toast.makeText(this@MisComprasActivity, "Error de conexión", Toast.LENGTH_LONG).show()
                 }
             }
         }
     }
 
+    // 🟢 Funciones de estado corregidas para usar llEmptyState y tvEmptyMessage
     private fun showResults() {
-        tvNoCompras.visibility = View.GONE
+        llEmptyState.visibility = View.GONE
         rvMisCompras.visibility = View.VISIBLE
-        setupRecyclerView()
     }
 
     private fun showEmptyState() {
-        tvNoCompras.visibility = View.VISIBLE
+        llEmptyState.visibility = View.VISIBLE
         rvMisCompras.visibility = View.GONE
-        tvNoCompras.text = "Aún no tienes compras realizadas."
-    }
-
-    // 🟢 Carga dinámica basada en el ID del usuario
-    private fun loadPurchasesFromPrefs(context: Context): Map<String, Int> {
-        // Usamos el ID del usuario para crear un nombre de archivo único
-        val prefsName = "my_purchases_$currentUserId"
-
-        val prefs = context.getSharedPreferences(prefsName, Context.MODE_PRIVATE)
-        val serializedMap = prefs.getString("purchases_map", "") ?: ""
-
-        if (serializedMap.isEmpty()) return emptyMap()
-
-        return serializedMap.split(";")
-            .mapNotNull { entryString ->
-                val parts = entryString.split(":")
-                if (parts.size == 2) {
-                    try {
-                        val id = parts[0]
-                        val quantity = parts[1].toInt()
-                        id to quantity
-                    } catch (e: NumberFormatException) {
-                        null
-                    }
-                } else {
-                    null
-                }
-            }
-            .toMap()
+        tvEmptyMessage.text = "Aún no tienes compras realizadas."
     }
 }

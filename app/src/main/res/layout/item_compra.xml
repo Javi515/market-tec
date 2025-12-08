@@ -1,26 +1,30 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.cardview.widget.CardView
+<com.google.android.material.card.MaterialCardView
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_margin="8dp"
-    app:cardCornerRadius="8dp"
+    android:layout_marginHorizontal="10dp"
+    android:layout_marginVertical="6dp"
+    app:cardCornerRadius="10dp"
     app:cardElevation="2dp"
-    android:background="@android:color/white">
+    app:strokeColor="#F0F0F0"
+    app:strokeWidth="1dp"
+    android:background="#FFFFFF">
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:padding="12dp"
-        android:background="@android:color/white">
+        android:background="#FFFFFF">
 
         <ImageView
             android:id="@+id/ivCompraProducto"
-            android:layout_width="100dp"
-            android:layout_height="90dp"
+            android:layout_width="80dp"
+            android:layout_height="80dp"
             android:scaleType="centerCrop"
+            android:background="#F5F5F5"
             tools:src="@drawable/papas_fritas"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
@@ -41,25 +45,41 @@
                 android:layout_height="wrap_content"
                 android:textSize="16sp"
                 android:textStyle="bold"
-                android:textColor="#333333"
-                tools:text="Teclado Mecánico" />
-
-            <TextView
-                android:id="@+id/tvCompraCantidad"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:textSize="14sp"
-                android:textColor="#666666"
-                tools:text="Cantidad: 2" />
+                android:textColor="#111111"
+                android:maxLines="1"
+                android:ellipsize="end"
+                tools:text="Teclado Mecánico RGB Pro V3" />
 
             <TextView
                 android:id="@+id/tvCompraEstado"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textSize="14sp"
-                android:textStyle="italic"
-                android:textColor="#FF9800"
-                android:text="Estado: En envío" />
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:paddingHorizontal="6dp"
+                android:paddingVertical="2dp"
+                android:layout_marginTop="4dp"
+                tools:text="PAGO PENDIENTE"
+                tools:textColor="#FF9800"
+                tools:background="@drawable/bg_status_yellow" />
+            <TextView
+                android:id="@+id/tvCompraCantidad"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="13sp"
+                android:textColor="#777777"
+                android:layout_marginTop="8dp"
+                tools:text="Cantidad: 2" />
+
+            <TextView
+                android:id="@+id/tvCompraTotal"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:textColor="#2E7D32"
+                android:layout_marginTop="4dp"
+                tools:text="Total: $850.00" />
 
         </LinearLayout>
 
@@ -70,18 +90,40 @@
             app:barrierDirection="bottom"
             app:constraint_referenced_ids="ivCompraProducto,llTextContainer" />
 
-        <Button
-            android:id="@+id/btnContactarVendedor"
+        <LinearLayout
             android:layout_width="0dp"
-            android:layout_height="40dp"
-            android:layout_marginTop="8dp"
-            android:backgroundTint="#2196F3"
-            android:text="Contactar al Vendedor"
-            android:textSize="12sp"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginTop="12dp"
             app:layout_constraintTop_toBottomOf="@id/contentBarrier"
-            app:layout_constraintBottom_toBottomOf="parent" />
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent">
+
+            <Button
+                android:id="@+id/btnContactarVendedor"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginEnd="8dp"
+                android:text="CONTACTAR"
+                android:textSize="14sp"
+                style="@style/Widget.MaterialComponents.Button"
+                android:backgroundTint="#2196F3"
+                android:textColor="#FFFFFF"/>
+
+            <Button
+                android:id="@+id/btnCancelarCompra"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="CANCELAR"
+                android:textSize="14sp"
+                style="@style/Widget.MaterialComponents.Button"
+                android:backgroundTint="#D32F2F"
+                android:textColor="#FFFFFF"/>
+
+        </LinearLayout>
 
     </androidx.constraintlayout.widget.ConstraintLayout>
-</androidx.cardview.widget.CardView>
+</com.google.android.material.card.MaterialCardView>

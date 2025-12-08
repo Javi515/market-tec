@@ -5,7 +5,11 @@
 
     <color name="colorPrimary">#FF6200EE</color>
     <color name="colorPrimaryVariant">#FF3700B3</color>
+    <color name="status_green_text">#2E7D32</color>
 
+    <color name="status_yellow_text">#FF9800</color>
+
+    <color name="status_red_text">#D32F2F</color>
     <!-- Amarillo dorado para las estrellas -->
     <color name="amarillo">#FFD700</color>
 </resources>

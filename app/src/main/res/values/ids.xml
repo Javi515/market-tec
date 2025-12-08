@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <item type="id" name="action_view_product_detail" />
+
+    <item type="id" name="action_edit_product" />
+    <item type="id" name="action_delete_product" />
+    <item type="id" name="action_mark_sold_out" />
+
+</resources>
